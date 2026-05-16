@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>GitSwarm Login</title>
+  <link rel="stylesheet" href="{{ url_for('static', path='/style.css') }}">
+</head>
+<body class="login-page">
+  <main class="login-panel">
+    <h1>GitSwarm</h1>
+    <form method="post" action="/login">
+      {% if error %}<p class="error">{{ error }}</p>{% endif %}
+      <label>Username <input name="username" required></label>
+      <label>Password <input name="password" type="password" required></label>
+      <button type="submit">Log in</button>
+    </form>
+  </main>
+</body>
+</html>

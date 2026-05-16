@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block content %}
+<section>
+  <h1>{{ checkpoint.org_name }} checkpoint</h1>
+  <p class="muted">{{ checkpoint.since }} to {{ checkpoint.until }}</p>
+  <p>
+    <a class="button" href="/reports/{{ checkpoint.id }}.md">Export Markdown</a>
+    <a class="button" href="/reports/{{ checkpoint.id }}.pdf">Export PDF</a>
+  </p>
+</section>
+
+<section>
+  <h2>Checkpoint diff</h2>
+  <table>
+    <thead><tr><th>Scope</th><th>Subject</th><th>Status</th><th>Review</th><th>Score</th><th>Explanation</th></tr></thead>
+    <tbody>
+      {% for summary in summaries %}
+      <tr>
+        <td>{{ summary.scope }}</td>
+        <td>{{ summary.subject }}</td>
+        <td><span class="status {{ summary.review.status if summary.review else '' }}">{{ summary.review.status if summary.review else '' }}</span></td>
+        <td>{{ summary.review.review if summary.review else '' }}</td>
+        <td>{{ summary.review.score if summary.review else 0 }}</td>
+        <td>{{ summary.review.explanation if summary.review else '' }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+
+<section class="grid two">
+  <div class="panel">
+    <h2>Outside GitHub work</h2>
+    <form method="post" action="/notes" class="stack">
+      <input type="hidden" name="checkpoint_id" value="{{ checkpoint.id }}">
+      <textarea name="note" rows="5" placeholder="Planning, design, customer calls, deployment work, pairing, research..." required></textarea>
+      <button type="submit">Add note</button>
+    </form>
+  </div>
+  <div>
+    <h2>Notes</h2>
+    <ul>{% for note in notes %}<li>{{ note.note }}</li>{% else %}<li class="muted">No notes yet.</li>{% endfor %}</ul>
+  </div>
+</section>
+{% endblock %}

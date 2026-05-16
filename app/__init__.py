@@ -1,0 +1,1 @@
+"""GitSwarm application package."""
