@@ -19,16 +19,27 @@
   </form>
 </section>
 
-<section class="repo-list">
+<section class="repo-list repo-health-list">
   {% for card in repo_cards %}
   {% set repo = card.repo %}
-  <a class="repo-row" href="/repositories/{{ repo.id }}">
-    <span>
+  {% set health = card.health %}
+  {% set summary = health.repo_summary %}
+  {% set review = summary.review if summary else none %}
+  <article class="repo-row repo-health-row">
+    <a class="repo-main" href="/repositories/{{ repo.id }}">
       <strong>{{ repo.full_name }}</strong>
       <span class="muted">{{ "active" if repo.is_active else "inactive" }}</span>
-    </span>
+    </a>
     <span>{{ card.member_count }} members</span>
     <span>{{ card.commit_count }} commits</span>
+    <span>
+      {% if review %}
+      <span class="status {{ review.status }}">{{ review.status }}</span>
+      <span class="muted score-label">{{ review.score }}/100</span>
+      {% else %}
+      <span class="muted">No checkup yet</span>
+      {% endif %}
+    </span>
     <span class="muted">
       {% if card.latest_commit %}
       Latest {{ card.latest_commit.committed_at }}
@@ -36,7 +47,16 @@
       No cached commits
       {% endif %}
     </span>
-  </a>
+    <span class="repo-actions">
+      {% if health.checkpoint %}
+      <a href="/checkpoint/{{ health.checkpoint.id }}">Open checkup</a>
+      <a href="/reports/{{ health.checkpoint.id }}.md">Markdown</a>
+      <a href="/reports/{{ health.checkpoint.id }}.pdf">PDF</a>
+      {% else %}
+      <a href="/repositories/{{ repo.id }}">Run checkup</a>
+      {% endif %}
+    </span>
+  </article>
   {% else %}
   <div class="empty-state">No repositories yet. Add one to create its team and ingest commit history.</div>
   {% endfor %}

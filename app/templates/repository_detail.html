@@ -40,6 +40,38 @@
   </form>
 </section>
 
+<section class="panel health-panel">
+  <div class="health-heading">
+    <div>
+      <h2>Repository health</h2>
+      {% if health.checkpoint %}
+      <p class="muted">{{ health.checkpoint.since }} to {{ health.checkpoint.until }}</p>
+      {% else %}
+      <p class="muted">Run a repository checkup to grade this team and generate reports.</p>
+      {% endif %}
+    </div>
+    {% if health.checkpoint %}
+    <div class="action-row">
+      <a class="button secondary" href="/checkpoint/{{ health.checkpoint.id }}">Open checkup</a>
+      <a class="button secondary" href="/reports/{{ health.checkpoint.id }}.md">Markdown</a>
+      <a class="button secondary" href="/reports/{{ health.checkpoint.id }}.pdf">PDF</a>
+    </div>
+    {% endif %}
+  </div>
+  {% if health.repo_summary and health.repo_summary.review %}
+  <div class="health-summary">
+    <div>
+      <span class="status {{ health.repo_summary.review.status }}">{{ health.repo_summary.review.status }}</span>
+      <strong>{{ health.repo_summary.review.review }}</strong>
+    </div>
+    <span class="metric-value">{{ health.repo_summary.review.score }}</span>
+  </div>
+  <p class="muted">{{ health.repo_summary.review.explanation }}</p>
+  {% else %}
+  <div class="empty-state">No repository health report has been generated yet.</div>
+  {% endif %}
+</section>
+
 <section class="metric-grid">
   <div class="metric">
     <span class="metric-value">{{ commit_count }}</span>
@@ -53,6 +85,26 @@
     <span class="metric-value">{{ active_days }}</span>
     <span class="muted">active days</span>
   </div>
+</section>
+
+<section>
+  <h2>Member health</h2>
+  <table>
+    <thead><tr><th>Member</th><th>Status</th><th>Review</th><th>Score</th><th>Activity</th></tr></thead>
+    <tbody>
+      {% for summary in health.member_summaries %}
+      <tr>
+        <td>{{ summary.subject }}</td>
+        <td><span class="status {{ summary.review.status if summary.review else '' }}">{{ summary.review.status if summary.review else '' }}</span></td>
+        <td>{{ summary.review.review if summary.review else '' }}</td>
+        <td>{{ summary.review.score if summary.review else 0 }}</td>
+        <td>{{ summary.commits_count }} commits, {{ summary.prs_opened }} PRs opened, {{ summary.prs_merged }} merged, {{ summary.issues_closed }} issues closed</td>
+      </tr>
+      {% else %}
+      <tr><td colspan="5" class="muted">Run a repository checkup to see member-level health.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
 </section>
 
 <section class="grid two">

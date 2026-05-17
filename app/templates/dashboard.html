@@ -4,22 +4,20 @@
 <section class="notice error">{{ error }}</section>
 {% endif %}
 
-<section class="grid two">
+<section class="hero">
   <div>
-    <h1>Dashboard</h1>
+    <p class="eyebrow">Texas A&amp;M themed activity intelligence</p>
+    <h1>Aggie Investment Club Quant Dashboard</h1>
     {% if checkpoint %}
-      <p class="muted">Latest checkpoint: {{ checkpoint.since }} to {{ checkpoint.until }}</p>
-      <p>
-        <a class="button" href="/checkpoint/{{ checkpoint.id }}">Open checkpoint</a>
-        <a class="button" href="/reports/{{ checkpoint.id }}.md">Markdown</a>
-        <a class="button" href="/reports/{{ checkpoint.id }}.pdf">PDF</a>
-        <a class="button secondary" href="/repositories">Repositories</a>
-      </p>
+      <p class="hero-copy">Latest checkpoint: {{ checkpoint.since }} to {{ checkpoint.until }}</p>
+      <div class="action-row">
+        <a class="button" href="/repositories">Review repositories</a>
+      </div>
     {% else %}
-      <p class="muted">No checkpoints yet. Add repositories to ingest commit history, then grade any interval.</p>
+      <p class="hero-copy">No checkpoints yet. Add repositories to ingest commit history, then grade any interval.</p>
     {% endif %}
   </div>
-  <div class="panel">
+  <div class="panel hero-panel">
     <h2>Grade interval</h2>
     <form method="post" action="/checkpoint/manual" class="stack">
       <input name="org_name" placeholder="GitHub org" required>
@@ -31,8 +29,23 @@
   </div>
 </section>
 
+<section class="metric-grid dashboard-metrics">
+  <div class="metric">
+    <span class="metric-value">{{ repos|length }}</span>
+    <span class="muted">repositories tracked</span>
+  </div>
+  <div class="metric">
+    <span class="metric-value">{{ teams|length }}</span>
+    <span class="muted">research teams</span>
+  </div>
+  <div class="metric">
+    <span class="metric-value">{{ users|length }}</span>
+    <span class="muted">scanned members</span>
+  </div>
+</section>
+
 <section>
-  <h2>Repository progress</h2>
+  <h2>Organization progress</h2>
   <table>
     <thead><tr><th>Repository</th><th>Status</th><th>Review</th><th>Score</th><th>Activity</th></tr></thead>
     <tbody>
@@ -59,17 +72,17 @@
       <input name="name" placeholder="repo" required>
       <button type="submit">Add repo</button>
     </form>
-    <p class="muted">{{ repos|length }} repositories configured. Adding one ingests its full commit history.</p>
+    <p class="muted">Adding a repository ingests its full commit history and creates a team workspace.</p>
     <p><a class="button secondary" href="/repositories">View repositories</a></p>
   </div>
   <div class="panel">
     <h2>Teams</h2>
-    <p class="muted">{{ teams|length }} repository teams configured.</p>
+    <p class="muted">Review rosters and find teams that need collaborator scans.</p>
     <p><a class="button secondary" href="/teams">View teams</a></p>
   </div>
   <div class="panel">
     <h2>Members</h2>
-    <p class="muted">{{ users|length }} scanned members. Scan collaborators from a repository to update rosters.</p>
+    <p class="muted">Scan collaborators from repositories to update member coverage.</p>
     <p><a class="button secondary" href="/members">View members</a></p>
   </div>
 </section>

@@ -78,7 +78,13 @@ def dashboard(request: Request, db: Session = Depends(get_db), _: None = Depends
 
 
 def _dashboard_context(request: Request, db: Session, error: str = "") -> dict[str, object]:
-    checkpoints = db.query(Checkpoint).filter(Checkpoint.checkpoint_day_time != HISTORY_CHECKPOINT_DAY_TIME).order_by(Checkpoint.until.desc()).all()
+    checkpoints = (
+        db.query(Checkpoint)
+        .filter(Checkpoint.checkpoint_day_time != HISTORY_CHECKPOINT_DAY_TIME)
+        .filter(~Checkpoint.notes.startswith(REPOSITORY_CHECKUP_NOTE_PREFIX))
+        .order_by(Checkpoint.until.desc())
+        .all()
+    )
     checkpoint = checkpoints[0] if checkpoints else None
     summaries = []
     if checkpoint:
@@ -109,6 +115,15 @@ def _ensure_team_for_repo(db: Session, repo: Repository) -> Team:
         db.add(team)
         db.flush()
     return team
+
+
+def _delete_team(db: Session, team: Team) -> None:
+    db.query(User).filter_by(team_id=team.id).update({"team_id": None}, synchronize_session=False)
+    db.query(ActivitySummary).filter_by(team_id=team.id).update({"team_id": None}, synchronize_session=False)
+    db.query(OutsideWorkNote).filter_by(team_id=team.id).update({"team_id": None}, synchronize_session=False)
+    db.delete(team)
+    db.commit()
+    db.expire_all()
 
 
 def _github_error_detail(exc: HTTPError) -> str:
@@ -158,6 +173,15 @@ def team_detail(team_id: int, request: Request, db: Session = Depends(get_db), _
             "team": team,
         },
     )
+
+
+@app.post("/teams/{team_id}/delete")
+def delete_team(team_id: int, db: Session = Depends(get_db), _: None = Depends(require_admin)) -> Response:
+    team = db.get(Team, team_id)
+    if not team:
+        raise HTTPException(status_code=404)
+    _delete_team(db, team)
+    return RedirectResponse("/teams", status_code=303)
 
 
 @app.get("/members")
@@ -216,12 +240,48 @@ def _repository_card_context(db: Session, repo: Repository) -> dict[str, object]
     commit_count = db.query(Commit).filter_by(repository_id=repo.id).count()
     latest_commit = db.query(Commit).filter_by(repository_id=repo.id).order_by(Commit.committed_at.desc()).first()
     member_count = len(team.members) if team else 0
+    health = _repository_health_context(db, repo)
     return {
         "repo": repo,
         "team": team,
         "member_count": member_count,
         "commit_count": commit_count,
         "latest_commit": latest_commit,
+        "health": health,
+    }
+
+
+def _latest_repository_checkup(db: Session, repo: Repository) -> Checkpoint | None:
+    return (
+        db.query(Checkpoint)
+        .filter_by(notes=f"{REPOSITORY_CHECKUP_NOTE_PREFIX}{repo.full_name}")
+        .filter(Checkpoint.checkpoint_day_time != HISTORY_CHECKPOINT_DAY_TIME)
+        .order_by(Checkpoint.until.desc(), Checkpoint.id.desc())
+        .first()
+    )
+
+
+def _repository_health_context(db: Session, repo: Repository) -> dict[str, object]:
+    checkpoint = _latest_repository_checkup(db, repo)
+    if not checkpoint:
+        return {
+            "checkpoint": None,
+            "repo_summary": None,
+            "member_summaries": [],
+        }
+    summaries = (
+        db.query(ActivitySummary)
+        .options(joinedload(ActivitySummary.review))
+        .filter_by(checkpoint_id=checkpoint.id)
+        .order_by(ActivitySummary.scope, ActivitySummary.subject)
+        .all()
+    )
+    repo_summary = next((summary for summary in summaries if summary.scope == "repo" and summary.repository_id == repo.id), None)
+    member_summaries = [summary for summary in summaries if summary.scope == "member"]
+    return {
+        "checkpoint": checkpoint,
+        "repo_summary": repo_summary,
+        "member_summaries": member_summaries,
     }
 
 
@@ -249,6 +309,7 @@ def _repository_detail_response(request: Request, db: Session, repo: Repository,
             "latest_commit": latest_commit,
             "active_days": active_days,
             "contributors": contributors,
+            "health": _repository_health_context(db, repo),
             "error": error,
             "notice": notice,
         },

@@ -6,7 +6,12 @@
     <h1>{{ team.name }}</h1>
     <p class="muted">{{ team.members|length }} scanned members</p>
   </div>
-  <a class="button" href="/repositories">Scan repository</a>
+  <div class="action-row">
+    <a class="button" href="/repositories">Scan repository</a>
+    <form class="subtle-action" method="post" action="/teams/{{ team.id }}/delete" onsubmit="return confirm('Delete {{ team.name }}? Members will become unassigned.');">
+      <button class="link-danger" type="submit">Delete team</button>
+    </form>
+  </div>
 </section>
 
 <section class="grid">

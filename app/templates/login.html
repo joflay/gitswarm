@@ -3,12 +3,17 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>GitSwarm Login</title>
+  <title>Aggie Quant Dashboard Login</title>
   <link rel="stylesheet" href="{{ url_for('static', path='/style.css') }}">
 </head>
 <body class="login-page">
   <main class="login-panel">
-    <h1>GitSwarm</h1>
+    <div class="login-brand">
+      <span class="brand-mark">A</span>
+      <span>Aggie Investment Club</span>
+    </div>
+    <h1>Quant Dashboard</h1>
+    <p class="muted">Repository intelligence for investment club engineering teams.</p>
     <form method="post" action="/login">
       {% if error %}<p class="error">{{ error }}</p>{% endif %}
       <label>Username <input name="username" required></label>

@@ -10,10 +10,15 @@
 
 <section class="team-grid">
   {% for team in teams %}
-  <a class="team-card" href="/teams/{{ team.id }}">
-    <span class="team-name">{{ team.name }}</span>
-    <span class="muted">{{ team.members|length }} members</span>
-  </a>
+  <article class="team-card">
+    <a class="team-card-link" href="/teams/{{ team.id }}">
+      <span class="team-name">{{ team.name }}</span>
+      <span class="muted">{{ team.members|length }} members</span>
+    </a>
+    <form class="subtle-action" method="post" action="/teams/{{ team.id }}/delete" onsubmit="return confirm('Delete {{ team.name }}? Members will become unassigned.');">
+      <button class="link-danger" type="submit">Delete</button>
+    </form>
+  </article>
   {% else %}
   <div class="empty-state">No teams yet. Add a repository to create the first team.</div>
   {% endfor %}
