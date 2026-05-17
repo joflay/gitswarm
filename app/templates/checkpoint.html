@@ -1,12 +1,19 @@
 {% extends "base.html" %}
 {% block content %}
+{% if error %}
+<section class="notice error">{{ error }}</section>
+{% endif %}
+
 <section>
   <h1>{{ checkpoint.org_name }} checkpoint</h1>
   <p class="muted">{{ checkpoint.since }} to {{ checkpoint.until }}</p>
-  <p>
+  <div class="action-row">
     <a class="button" href="/reports/{{ checkpoint.id }}.md">Export Markdown</a>
     <a class="button" href="/reports/{{ checkpoint.id }}.pdf">Export PDF</a>
-  </p>
+    <form method="post" action="/checkpoint/{{ checkpoint.id }}/refresh">
+      <button type="submit" class="secondary">Regrade interval</button>
+    </form>
+  </div>
 </section>
 
 <section>

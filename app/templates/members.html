@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="page-heading">
+  <div>
+    <h1>Members</h1>
+    <p class="muted">Members are discovered by scanning repository collaborators.</p>
+  </div>
+  <a class="button" href="/repositories">Scan repository</a>
+</section>
+
+<section>
+  <table>
+    <thead><tr><th>GitHub</th><th>Team</th><th>Status</th></tr></thead>
+    <tbody>
+      {% for user in users %}
+      <tr>
+        <td>{{ user.github_username }}</td>
+        <td>{{ user.team.name if user.team else "Unassigned" }}</td>
+        <td>{{ "active" if user.is_active else "inactive" }}</td>
+      </tr>
+      {% else %}
+      <tr><td colspan="3" class="muted">No members yet. Scan a repository to import collaborators.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% endblock %}

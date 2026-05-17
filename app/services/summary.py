@@ -5,7 +5,7 @@ from collections import defaultdict
 
 from sqlalchemy.orm import Session
 
-from app.models import ActivitySummary, Checkpoint, Commit, Issue, OutsideWorkNote, ProgressReview, PullRequest, Repository, Team, User
+from app.models import ActivitySummary, Checkpoint, Commit, Issue, OutsideWorkNote, ProgressReview, PullRequest, Repository, User
 from app.services.scoring import score_summary
 
 
@@ -19,7 +19,6 @@ def rebuild_summaries(db: Session, checkpoint: Checkpoint) -> list[ActivitySumma
     summaries: list[ActivitySummary] = []
     summaries.extend(_member_summaries(db, checkpoint))
     summaries.extend(_repo_summaries(db, checkpoint))
-    summaries.extend(_team_summaries(db, checkpoint))
 
     db.add_all(summaries)
     db.flush()
@@ -31,40 +30,45 @@ def rebuild_summaries(db: Session, checkpoint: Checkpoint) -> list[ActivitySumma
 
 
 def _member_summaries(db: Session, checkpoint: Checkpoint) -> list[ActivitySummary]:
-    users = db.query(User).filter_by(is_active=True).all()
+    users = db.query(User).filter_by(is_active=True, canonical_user_id=None).all()
+    repo_ids = [repo.id for repo in db.query(Repository).filter_by(is_active=True, org_name=checkpoint.org_name).all()]
     notes_by_user = _notes_by(db.query(OutsideWorkNote).filter_by(checkpoint_id=checkpoint.id).all(), "user_id")
     summaries = []
     for user in users:
-        commits = db.query(Commit).filter_by(checkpoint_id=checkpoint.id, author_id=user.id).all()
+        alias_ids = [alias.id for alias in user.aliases]
+        user_ids = [user.id, *alias_ids]
+        commit_query = db.query(Commit).filter(
+            Commit.author_id.in_(user_ids),
+            Commit.committed_at >= checkpoint.since,
+            Commit.committed_at <= checkpoint.until,
+        )
+        if repo_ids:
+            commit_query = commit_query.filter(Commit.repository_id.in_(repo_ids))
+        commits = _dedupe_commits(
+            commit_query.all()
+        )
         prs = db.query(PullRequest).filter_by(checkpoint_id=checkpoint.id, author_login=user.github_username).all()
         issues = db.query(Issue).filter_by(checkpoint_id=checkpoint.id, author_login=user.github_username).all()
-        summaries.append(_build_summary(checkpoint, commits, prs, issues, "member", user.github_username, user_id=user.id, team_id=user.team_id, notes=notes_by_user[user.id]))
+        notes = notes_by_user[user.id]
+        for alias_id in alias_ids:
+            notes.extend(notes_by_user[alias_id])
+        summaries.append(_build_summary(checkpoint, commits, prs, issues, "member", user.github_username, user_id=user.id, team_id=user.team_id, notes=notes))
     return summaries
 
 
 def _repo_summaries(db: Session, checkpoint: Checkpoint) -> list[ActivitySummary]:
-    repos = db.query(Repository).filter_by(is_active=True).all()
+    repos = db.query(Repository).filter_by(is_active=True, org_name=checkpoint.org_name).all()
     notes_by_repo = _notes_by(db.query(OutsideWorkNote).filter_by(checkpoint_id=checkpoint.id).all(), "repository_id")
     summaries = []
     for repo in repos:
-        commits = db.query(Commit).filter_by(checkpoint_id=checkpoint.id, repository_id=repo.id).all()
+        commits = _dedupe_commits(
+            db.query(Commit)
+            .filter(Commit.repository_id == repo.id, Commit.committed_at >= checkpoint.since, Commit.committed_at <= checkpoint.until)
+            .all()
+        )
         prs = db.query(PullRequest).filter_by(checkpoint_id=checkpoint.id, repository_id=repo.id).all()
         issues = db.query(Issue).filter_by(checkpoint_id=checkpoint.id, repository_id=repo.id).all()
         summaries.append(_build_summary(checkpoint, commits, prs, issues, "repo", repo.full_name, repository_id=repo.id, notes=notes_by_repo[repo.id]))
-    return summaries
-
-
-def _team_summaries(db: Session, checkpoint: Checkpoint) -> list[ActivitySummary]:
-    teams = db.query(Team).all()
-    notes_by_team = _notes_by(db.query(OutsideWorkNote).filter_by(checkpoint_id=checkpoint.id).all(), "team_id")
-    summaries = []
-    for team in teams:
-        member_ids = [member.id for member in team.members]
-        member_logins = [member.github_username for member in team.members]
-        commits = db.query(Commit).filter(Commit.checkpoint_id == checkpoint.id, Commit.author_id.in_(member_ids or [-1])).all()
-        prs = db.query(PullRequest).filter(PullRequest.checkpoint_id == checkpoint.id, PullRequest.author_login.in_(member_logins or [""])).all()
-        issues = db.query(Issue).filter(Issue.checkpoint_id == checkpoint.id, Issue.author_login.in_(member_logins or [""])).all()
-        summaries.append(_build_summary(checkpoint, commits, prs, issues, "team", team.name, team_id=team.id, notes=notes_by_team[team.id]))
     return summaries
 
 
@@ -117,3 +121,10 @@ def _notes_by(notes: list[OutsideWorkNote], field: str) -> defaultdict[int, list
         if key is not None:
             grouped[key].append(note.note)
     return grouped
+
+
+def _dedupe_commits(commits: list[Commit]) -> list[Commit]:
+    by_repo_sha: dict[tuple[int, str], Commit] = {}
+    for commit in commits:
+        by_repo_sha[(commit.repository_id, commit.sha)] = commit
+    return list(by_repo_sha.values())

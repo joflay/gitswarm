@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="page-heading">
+  <div>
+    <h1>Teams</h1>
+    <p class="muted">Teams are created from repositories. Scan a repository to populate its roster.</p>
+  </div>
+  <a class="button" href="/repositories">Add repository</a>
+</section>
+
+<section class="team-grid">
+  {% for team in teams %}
+  <a class="team-card" href="/teams/{{ team.id }}">
+    <span class="team-name">{{ team.name }}</span>
+    <span class="muted">{{ team.members|length }} members</span>
+  </a>
+  {% else %}
+  <div class="empty-state">No teams yet. Add a repository to create the first team.</div>
+  {% endfor %}
+</section>
+
+<section>
+  <h2>Unassigned members</h2>
+  <table>
+    <thead><tr><th>GitHub</th><th>Status</th></tr></thead>
+    <tbody>
+      {% for user in unassigned_members %}
+      <tr>
+        <td>{{ user.github_username }}</td>
+        <td>{{ "active" if user.is_active else "inactive" }}</td>
+      </tr>
+      {% else %}
+      <tr><td colspan="2" class="muted">Everyone is assigned to a team.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% endblock %}

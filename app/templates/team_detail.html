@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="page-heading">
+  <div>
+    <p><a href="/teams">Teams</a></p>
+    <h1>{{ team.name }}</h1>
+    <p class="muted">{{ team.members|length }} scanned members</p>
+  </div>
+  <a class="button" href="/repositories">Scan repository</a>
+</section>
+
+<section class="grid">
+  <div class="panel">
+    <h2>Team snapshot</h2>
+    <p class="muted">{{ team.members|selectattr("is_active")|list|length }} active, {{ team.members|rejectattr("is_active")|list|length }} inactive</p>
+  </div>
+</section>
+
+<section>
+  <h2>Members</h2>
+  <table>
+    <thead><tr><th>GitHub</th><th>Status</th></tr></thead>
+    <tbody>
+      {% for user in team.members|sort(attribute="github_username") %}
+      <tr>
+        <td>{{ user.github_username }}</td>
+        <td>{{ "active" if user.is_active else "inactive" }}</td>
+      </tr>
+      {% else %}
+      <tr><td colspan="2" class="muted">No members on this team yet. Scan the repository to import collaborators.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% endblock %}

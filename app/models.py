@@ -18,11 +18,13 @@ class User(TimestampMixin, Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     github_username: Mapped[str] = mapped_column(String(120), unique=True, index=True)
-    display_name: Mapped[str] = mapped_column(String(200), default="")
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     team_id: Mapped[int | None] = mapped_column(ForeignKey("teams.id"), nullable=True)
+    canonical_user_id: Mapped[int | None] = mapped_column(ForeignKey("users.id"), nullable=True, index=True)
 
     team: Mapped[Team | None] = relationship(back_populates="members")
+    canonical_user: Mapped[User | None] = relationship(remote_side="User.id", back_populates="aliases")
+    aliases: Mapped[list[User]] = relationship(back_populates="canonical_user")
     commits: Mapped[list[Commit]] = relationship(back_populates="author")
     summaries: Mapped[list[ActivitySummary]] = relationship(back_populates="user")
 

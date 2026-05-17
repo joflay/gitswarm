@@ -1,6 +1,6 @@
 from collections.abc import Generator
 
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, inspect, text
 from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
 
 from app.config import get_settings
@@ -33,3 +33,35 @@ def init_db() -> None:
     import app.models  # noqa: F401
 
     Base.metadata.create_all(bind=engine)
+    _migrate_sqlite_users_table()
+    _migrate_sqlite_user_aliases()
+
+
+def _migrate_sqlite_users_table() -> None:
+    if engine.dialect.name != "sqlite":
+        return
+
+    legacy_column = "_".join(("display", "name"))
+    inspector = inspect(engine)
+    if not inspector.has_table("users"):
+        return
+    if legacy_column not in {column["name"] for column in inspector.get_columns("users")}:
+        return
+
+    with engine.begin() as connection:
+        connection.execute(text(f"ALTER TABLE users DROP COLUMN {legacy_column}"))
+
+
+def _migrate_sqlite_user_aliases() -> None:
+    if engine.dialect.name != "sqlite":
+        return
+
+    inspector = inspect(engine)
+    if not inspector.has_table("users"):
+        return
+    if "canonical_user_id" in {column["name"] for column in inspector.get_columns("users")}:
+        return
+
+    with engine.begin() as connection:
+        connection.execute(text("ALTER TABLE users ADD COLUMN canonical_user_id INTEGER REFERENCES users(id)"))
+        connection.execute(text("CREATE INDEX IF NOT EXISTS ix_users_canonical_user_id ON users (canonical_user_id)"))

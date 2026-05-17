@@ -84,11 +84,13 @@ class GitHubClient:
             next_params = None
         return items
 
-    def list_commits(self, owner: str, repo: str, since: datetime, until: datetime) -> list[GitHubCommit]:
-        rows = self._paginate(
-            f"/repos/{owner}/{repo}/commits",
-            {"since": since.isoformat() + "Z", "until": until.isoformat() + "Z"},
-        )
+    def list_commits(self, owner: str, repo: str, since: datetime | None = None, until: datetime | None = None) -> list[GitHubCommit]:
+        params = {}
+        if since:
+            params["since"] = since.isoformat() + "Z"
+        if until:
+            params["until"] = until.isoformat() + "Z"
+        rows = self._paginate(f"/repos/{owner}/{repo}/commits", params)
         commits: list[GitHubCommit] = []
         for row in rows:
             detail = self._get(f"/repos/{owner}/{repo}/commits/{row['sha']}")
@@ -101,7 +103,7 @@ class GitHubClient:
                     sha=detail["sha"],
                     author_login=author.get("login") or commit_data.get("author", {}).get("name", ""),
                     message=commit_data.get("message", ""),
-                    committed_at=parse_github_datetime(commit_data.get("author", {}).get("date")) or since,
+                    committed_at=parse_github_datetime(commit_data.get("author", {}).get("date")) or since or datetime.utcnow(),
                     changed_files=len(files),
                     additions=int(stats.get("additions") or 0),
                     deletions=int(stats.get("deletions") or 0),
@@ -110,6 +112,10 @@ class GitHubClient:
                 )
             )
         return commits
+
+    def list_collaborators(self, owner: str, repo: str) -> list[str]:
+        rows = self._paginate(f"/repos/{owner}/{repo}/collaborators", {"affiliation": "all"})
+        return sorted({row.get("login", "") for row in rows if row.get("login")})
 
     def list_pull_requests(self, owner: str, repo: str, since: datetime, until: datetime) -> list[GitHubPullRequest]:
         rows = self._paginate(f"/repos/{owner}/{repo}/pulls", {"state": "all", "sort": "updated", "direction": "desc"})

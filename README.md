@@ -1,12 +1,13 @@
 # gitswarm
 
-GitHub project progress tracker MVP for weekly checkpoint reports across repositories, teams, and members.
+GitHub project progress tracker MVP for weekly checkpoint reports across repositories and their scanned team members.
 
 ## What it does
 
 - Connects to GitHub with `GITHUB_TOKEN`.
-- Stores repositories, teams, members, checkpoints, activity, summaries, reviews, and outside-work notes.
-- Ingests commits, changed files, PRs, issues, comments, and reviews for a checkpoint window.
+- Stores repositories, repository-backed teams, scanned members, checkpoints, activity, summaries, reviews, and outside-work notes.
+- Ingests full repository commit history when a repository is added or refreshed.
+- Grades checkpoint intervals from the locally cached commit history.
 - Generates explainable red/yellow/green progress reviews using deterministic heuristics.
 - Serves a simple FastAPI admin dashboard.
 - Exports weekly reports as Markdown and PDF.
@@ -19,7 +20,17 @@ python -m venv .venv
 pip install -r requirements.txt
 ```
 
-Create a `.env` file or set environment variables:
+Create a `.env` file:
+
+```dotenv
+DATABASE_URL=postgresql+psycopg://postgres:postgres@localhost:5432/gitswarm
+GITHUB_TOKEN=ghp_your_token
+ADMIN_USERNAME=admin
+ADMIN_PASSWORD=change-me
+SECRET_KEY=change-me-too
+```
+
+Or set environment variables in PowerShell:
 
 ```powershell
 $env:DATABASE_URL="postgresql+psycopg://postgres:postgres@localhost:5432/gitswarm"
@@ -47,9 +58,9 @@ python -m app.cli init-db
 uvicorn app.main:app --reload
 ```
 
-Open `http://127.0.0.1:8000`, log in with `ADMIN_USERNAME` and `ADMIN_PASSWORD`, then configure org, repos, teams, members, and checkpoint settings.
+Open `http://127.0.0.1:8000`, log in with `ADMIN_USERNAME` and `ADMIN_PASSWORD`, then add repositories. Each repository creates a team and ingests full commit history. Scanning collaborators adds members to that team.
 
-## Ingest GitHub activity
+## Grade an interval
 
 ```powershell
 python -m app.cli ingest --since 2026-05-01T09:00:00 --until 2026-05-08T09:00:00
@@ -79,6 +90,6 @@ pytest
 ## MVP notes
 
 - Scoring is heuristic-only in this version. It does not call an LLM.
-- Manual CLI ingestion is the first checkpoint workflow. The configured checkpoint day/time is stored but not scheduled yet.
+- Repository commit history is cached first. Checkpoints grade any requested interval from that cached history.
 - Authentication is a single admin login backed by environment variables.
 - PDF export uses WeasyPrint when available. If native PDF dependencies are missing, the app writes a readable `.pdf` fallback containing the report text.

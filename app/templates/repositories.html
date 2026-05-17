@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block content %}
+{% if error %}
+<section class="notice error">{{ error }}</section>
+{% endif %}
+{% if notice %}
+<section class="notice success">{{ notice }}</section>
+{% endif %}
+
+<section class="page-heading">
+  <div>
+    <h1>Repositories</h1>
+    <p class="muted">Add repositories, open one to manage its team, refresh commit history, and inspect cached activity.</p>
+  </div>
+  <form method="post" action="/config/repo" class="inline-form">
+    <input name="org_name" placeholder="org" required>
+    <input name="name" placeholder="repo" required>
+    <button type="submit">Add repo</button>
+  </form>
+</section>
+
+<section class="repo-list">
+  {% for card in repo_cards %}
+  {% set repo = card.repo %}
+  <a class="repo-row" href="/repositories/{{ repo.id }}">
+    <span>
+      <strong>{{ repo.full_name }}</strong>
+      <span class="muted">{{ "active" if repo.is_active else "inactive" }}</span>
+    </span>
+    <span>{{ card.member_count }} members</span>
+    <span>{{ card.commit_count }} commits</span>
+    <span class="muted">
+      {% if card.latest_commit %}
+      Latest {{ card.latest_commit.committed_at }}
+      {% else %}
+      No cached commits
+      {% endif %}
+    </span>
+  </a>
+  {% else %}
+  <div class="empty-state">No repositories yet. Add one to create its team and ingest commit history.</div>
+  {% endfor %}
+</section>
+{% endblock %}

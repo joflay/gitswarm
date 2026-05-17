@@ -26,3 +26,15 @@ def test_list_commits_normalizes_commit_detail():
     assert commits[0].author_login == "alice"
     assert commits[0].additions == 20
     assert commits[0].files[0]["filename"] == "app/main.py"
+
+
+def test_list_collaborators_returns_sorted_unique_logins():
+    with requests_mock.Mocker() as mocker:
+        mocker.get(
+            "https://api.github.com/repos/acme/web/collaborators",
+            json=[{"login": "zoe"}, {"login": "alice"}, {"login": "alice"}, {"name": "missing-login"}],
+        )
+        client = GitHubClient("token")
+        collaborators = client.list_collaborators("acme", "web")
+
+    assert collaborators == ["alice", "zoe"]

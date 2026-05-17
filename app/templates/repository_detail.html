@@ -1,0 +1,153 @@
+{% extends "base.html" %}
+{% block content %}
+{% if error %}
+<section class="notice error">{{ error }}</section>
+{% endif %}
+{% if notice %}
+<section class="notice success">{{ notice }}</section>
+{% endif %}
+
+<section class="page-heading">
+  <div>
+    <p><a href="/repositories">Repositories</a></p>
+    <h1>{{ repo.full_name }}</h1>
+    <p class="muted">{{ "Active" if repo.is_active else "Inactive" }} repository team</p>
+  </div>
+  <div class="action-row">
+    <form method="post" action="/repositories/{{ repo.id }}/refresh-commit-history">
+      <button type="submit" class="secondary">Refresh commit history</button>
+    </form>
+    <form method="post" action="/repositories/{{ repo.id }}/sync-collaborators">
+      <button type="submit">Scan members</button>
+    </form>
+  </div>
+</section>
+
+<section class="metric-grid">
+  <div class="metric">
+    <span class="metric-value">{{ commit_count }}</span>
+    <span class="muted">cached commits</span>
+  </div>
+  <div class="metric">
+    <span class="metric-value">{{ members|length }}</span>
+    <span class="muted">team members</span>
+  </div>
+  <div class="metric">
+    <span class="metric-value">{{ active_days }}</span>
+    <span class="muted">active days</span>
+  </div>
+</section>
+
+<section class="grid two">
+  <div class="panel">
+    <h2>Settings</h2>
+    <form method="post" action="/repositories/{{ repo.id }}" class="stack">
+      <label>Organization<input name="org_name" value="{{ repo.org_name }}" required></label>
+      <label>Repository<input name="name" value="{{ repo.name }}" required></label>
+      <label>Relevance rules<textarea name="relevance_rules" rows="5" placeholder="Paths, modules, or signals that matter for grading">{{ repo.relevance_rules }}</textarea></label>
+      <label class="check-row"><input type="checkbox" name="is_active" {% if repo.is_active %}checked{% endif %}> Active</label>
+      <button type="submit">Save settings</button>
+    </form>
+  </div>
+  <div class="panel">
+    <h2>History</h2>
+    <div class="stack">
+      <p><strong>First commit</strong><br><span class="muted">{{ first_commit.committed_at if first_commit else "Not ingested" }}</span></p>
+      <p><strong>Latest commit</strong><br><span class="muted">{{ latest_commit.committed_at if latest_commit else "Not ingested" }}</span></p>
+      <p><strong>Team</strong><br><span class="muted">{{ team.name if team else repo.full_name }}</span></p>
+    </div>
+  </div>
+</section>
+
+<section class="grid two">
+  <div>
+    <h2>Team members</h2>
+    <table>
+      <thead><tr><th>GitHub</th><th>Aliases</th><th>Status</th></tr></thead>
+      <tbody>
+        {% for member in members|sort(attribute="github_username") %}
+        <tr>
+          <td>{{ member.github_username }}</td>
+          <td>
+            {% for alias in member.aliases|sort(attribute="github_username") %}
+            <span class="pill">{{ alias.github_username }}</span>
+            {% else %}
+            <span class="muted">None</span>
+            {% endfor %}
+          </td>
+          <td>{{ "active" if member.is_active else "inactive" }}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="3" class="muted">No members scanned yet.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <div>
+    <h2>Top contributors</h2>
+    <table>
+      <thead><tr><th>Author</th><th>Raw names</th><th>Commits</th></tr></thead>
+      <tbody>
+        {% for contributor in contributors %}
+        <tr>
+          <td>{{ contributor.name }}</td>
+          <td>{{ contributor.raw_authors|join(", ") }}</td>
+          <td>{{ contributor.commit_count }}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="3" class="muted">No cached contributors yet.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section class="panel">
+  <h2>Merge member aliases</h2>
+  <form method="post" action="/repositories/{{ repo.id }}/aliases" class="inline-form">
+    <select name="canonical_user_id" required>
+      <option value="">Primary member</option>
+      {% for member in members|sort(attribute="github_username") %}
+      <option value="{{ member.id }}">{{ member.github_username }}</option>
+      {% endfor %}
+    </select>
+    <select name="alias_user_id" required>
+      <option value="">Alias account</option>
+      {% for member in members|sort(attribute="github_username") %}
+      <option value="{{ member.id }}">{{ member.github_username }}</option>
+      {% endfor %}
+      {% for member in alias_members|sort(attribute="github_username") %}
+      <option value="{{ member.id }}">{{ member.github_username }}</option>
+      {% endfor %}
+    </select>
+    <button type="submit">Merge alias</button>
+  </form>
+  <p class="muted">Merged aliases stay visible, but checkpoint grading and contributor counts roll them into the primary member.</p>
+</section>
+
+<section>
+  <h2>Commit history</h2>
+  <table>
+    <thead><tr><th>Commit</th><th>Author</th><th>Date</th><th>Changes</th></tr></thead>
+    <tbody>
+      {% for commit in commits %}
+      <tr>
+        <td>
+          {% if commit.html_url %}
+          <a href="{{ commit.html_url }}">{{ commit.sha[:7] }}</a>
+          {% else %}
+          {{ commit.sha[:7] }}
+          {% endif %}
+          <div class="muted">{{ commit.message.split("\n")[0] }}</div>
+        </td>
+        <td>{{ commit.author.canonical_user.github_username if commit.author and commit.author.canonical_user else commit.author.github_username if commit.author else commit.author_login }}</td>
+        <td>{{ commit.committed_at }}</td>
+        <td>+{{ commit.additions }} -{{ commit.deletions }} across {{ commit.changed_files }} files</td>
+      </tr>
+      {% else %}
+      <tr><td colspan="4" class="muted">No cached commits yet. Refresh commit history to load activity.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% endblock %}

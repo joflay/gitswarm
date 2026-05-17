@@ -1,5 +1,9 @@
 {% extends "base.html" %}
 {% block content %}
+{% if error %}
+<section class="notice error">{{ error }}</section>
+{% endif %}
+
 <section class="grid two">
   <div>
     <h1>Dashboard</h1>
@@ -9,19 +13,20 @@
         <a class="button" href="/checkpoint/{{ checkpoint.id }}">Open checkpoint</a>
         <a class="button" href="/reports/{{ checkpoint.id }}.md">Markdown</a>
         <a class="button" href="/reports/{{ checkpoint.id }}.pdf">PDF</a>
+        <a class="button secondary" href="/repositories">Repositories</a>
       </p>
     {% else %}
-      <p class="muted">No checkpoints yet. Configure repos and run CLI ingestion, or create a manual checkpoint.</p>
+      <p class="muted">No checkpoints yet. Add repositories to ingest commit history, then grade any interval.</p>
     {% endif %}
   </div>
   <div class="panel">
-    <h2>Manual checkpoint</h2>
+    <h2>Grade interval</h2>
     <form method="post" action="/checkpoint/manual" class="stack">
       <input name="org_name" placeholder="GitHub org" required>
       <input name="since" placeholder="2026-05-01T09:00:00" required>
       <input name="until" placeholder="2026-05-08T09:00:00" required>
       <input name="checkpoint_day_time" placeholder="Friday 09:00">
-      <button type="submit">Create</button>
+      <button type="submit">Grade interval</button>
     </form>
   </div>
 </section>
@@ -53,28 +58,18 @@
       <input name="name" placeholder="repo" required>
       <button type="submit">Add repo</button>
     </form>
-    <ul>{% for repo in repos %}<li>{{ repo.full_name }}</li>{% endfor %}</ul>
+    <p class="muted">{{ repos|length }} repositories configured. Adding one ingests its full commit history.</p>
+    <p><a class="button secondary" href="/repositories">View repositories</a></p>
   </div>
   <div class="panel">
     <h2>Teams</h2>
-    <form method="post" action="/config/team" class="stack">
-      <input name="name" placeholder="team name" required>
-      <button type="submit">Add team</button>
-    </form>
-    <ul>{% for team in teams %}<li>{{ team.name }}</li>{% endfor %}</ul>
+    <p class="muted">{{ teams|length }} repository teams configured.</p>
+    <p><a class="button secondary" href="/teams">View teams</a></p>
   </div>
   <div class="panel">
     <h2>Members</h2>
-    <form method="post" action="/config/member" class="stack">
-      <input name="github_username" placeholder="github username" required>
-      <input name="display_name" placeholder="display name">
-      <select name="team_id">
-        <option value="">No team</option>
-        {% for team in teams %}<option value="{{ team.id }}">{{ team.name }}</option>{% endfor %}
-      </select>
-      <button type="submit">Add member</button>
-    </form>
-    <ul>{% for user in users %}<li>{{ user.github_username }}{% if user.team %} - {{ user.team.name }}{% endif %}</li>{% endfor %}</ul>
+    <p class="muted">{{ users|length }} scanned members. Scan collaborators from a repository to update rosters.</p>
+    <p><a class="button secondary" href="/members">View members</a></p>
   </div>
 </section>
 {% endblock %}

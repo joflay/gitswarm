@@ -1,8 +1,9 @@
 import json
 from datetime import datetime
 
-from app.models import ActivitySummary
+from app.models import ActivitySummary, Checkpoint, Commit, Repository, Team, User
 from app.services.scoring import score_summary
+from app.services.summary import rebuild_summaries
 
 
 def make_summary(**kwargs):
@@ -57,3 +58,58 @@ def test_low_activity_scores_weak_progress():
     assert score < 35
     assert status == "red"
     assert review == "weak progress"
+
+
+def test_rebuild_summaries_omits_team_scope(sqlite_session):
+    team = Team(name="platform")
+    sqlite_session.add(team)
+    sqlite_session.flush()
+    sqlite_session.add(User(github_username="alice", team_id=team.id))
+    sqlite_session.add(Repository(org_name="acme", name="platform", full_name="acme/platform"))
+    checkpoint = Checkpoint(org_name="acme", since=datetime(2026, 5, 1), until=datetime(2026, 5, 8))
+    sqlite_session.add(checkpoint)
+    sqlite_session.commit()
+
+    summaries = rebuild_summaries(sqlite_session, checkpoint)
+
+    assert {summary.scope for summary in summaries} == {"member", "repo"}
+
+
+def test_rebuild_summaries_rolls_alias_commits_into_canonical_member(sqlite_session):
+    team = Team(name="acme/web")
+    canonical = User(github_username="joflay", team=team)
+    alias = User(github_username="Jorge", team=team, canonical_user=canonical)
+    repo = Repository(org_name="acme", name="web", full_name="acme/web")
+    checkpoint = Checkpoint(org_name="acme", since=datetime(2026, 5, 1), until=datetime(2026, 5, 8))
+    sqlite_session.add_all([team, canonical, alias, repo, checkpoint])
+    sqlite_session.flush()
+    sqlite_session.add_all(
+        [
+            Commit(
+                checkpoint_id=checkpoint.id,
+                repository_id=repo.id,
+                author_id=canonical.id,
+                author_login="joflay",
+                sha="abc",
+                message="canonical work",
+                committed_at=datetime(2026, 5, 2),
+            ),
+            Commit(
+                checkpoint_id=checkpoint.id,
+                repository_id=repo.id,
+                author_id=alias.id,
+                author_login="Jorge",
+                sha="def",
+                message="alias work",
+                committed_at=datetime(2026, 5, 3),
+            ),
+        ]
+    )
+    sqlite_session.commit()
+
+    summaries = rebuild_summaries(sqlite_session, checkpoint)
+
+    member_summaries = [summary for summary in summaries if summary.scope == "member"]
+    assert len(member_summaries) == 1
+    assert member_summaries[0].subject == "joflay"
+    assert member_summaries[0].commits_count == 2

@@ -38,7 +38,7 @@ def main() -> None:
     try:
         if args.command == "ingest":
             checkpoint = ingest_activity(db, args.org, args.since, args.until)
-            print(f"Checkpoint {checkpoint.id} ingested for {checkpoint.org_name}")
+            print(f"Checkpoint {checkpoint.id} graded for {checkpoint.org_name}")
         elif args.command == "report":
             checkpoint = db.get(Checkpoint, args.checkpoint_id)
             if not checkpoint:

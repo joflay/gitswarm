@@ -12,7 +12,7 @@ class Settings(BaseSettings):
     secret_key: str = "dev-secret-change-me"
     report_output_dir: str = "./reports"
 
-    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
+    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
 
     @property
     def report_dir(self) -> Path:
