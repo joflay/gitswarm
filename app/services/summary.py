@@ -5,7 +5,8 @@ from collections import defaultdict
 
 from sqlalchemy.orm import Session
 
-from app.models import ActivitySummary, Checkpoint, Commit, Issue, OutsideWorkNote, ProgressReview, PullRequest, Repository, User
+from app.models import ActivitySummary, Checkpoint, Commit, Issue, OutsideWorkNote, ProgressReview, PullRequest, Repository, Team, User
+from app.services.checkups import REPOSITORY_CHECKUP_NOTE_PREFIX
 from app.services.scoring import score_summary
 
 
@@ -30,8 +31,14 @@ def rebuild_summaries(db: Session, checkpoint: Checkpoint) -> list[ActivitySumma
 
 
 def _member_summaries(db: Session, checkpoint: Checkpoint) -> list[ActivitySummary]:
-    users = db.query(User).filter_by(is_active=True, canonical_user_id=None).all()
-    repo_ids = [repo.id for repo in db.query(Repository).filter_by(is_active=True, org_name=checkpoint.org_name).all()]
+    repos = _checkpoint_repositories(db, checkpoint)
+    repo_ids = [repo.id for repo in repos]
+    users_query = db.query(User).filter_by(is_active=True, canonical_user_id=None)
+    if len(repos) == 1 and _is_repository_checkup(checkpoint):
+        team = db.query(Team).filter_by(name=repos[0].full_name).one_or_none()
+        if team:
+            users_query = users_query.filter_by(team_id=team.id)
+    users = users_query.all()
     notes_by_user = _notes_by(db.query(OutsideWorkNote).filter_by(checkpoint_id=checkpoint.id).all(), "user_id")
     summaries = []
     for user in users:
@@ -57,7 +64,7 @@ def _member_summaries(db: Session, checkpoint: Checkpoint) -> list[ActivitySumma
 
 
 def _repo_summaries(db: Session, checkpoint: Checkpoint) -> list[ActivitySummary]:
-    repos = db.query(Repository).filter_by(is_active=True, org_name=checkpoint.org_name).all()
+    repos = _checkpoint_repositories(db, checkpoint)
     notes_by_repo = _notes_by(db.query(OutsideWorkNote).filter_by(checkpoint_id=checkpoint.id).all(), "repository_id")
     summaries = []
     for repo in repos:
@@ -70,6 +77,18 @@ def _repo_summaries(db: Session, checkpoint: Checkpoint) -> list[ActivitySummary
         issues = db.query(Issue).filter_by(checkpoint_id=checkpoint.id, repository_id=repo.id).all()
         summaries.append(_build_summary(checkpoint, commits, prs, issues, "repo", repo.full_name, repository_id=repo.id, notes=notes_by_repo[repo.id]))
     return summaries
+
+
+def _checkpoint_repositories(db: Session, checkpoint: Checkpoint) -> list[Repository]:
+    if _is_repository_checkup(checkpoint):
+        full_name = checkpoint.notes.removeprefix(REPOSITORY_CHECKUP_NOTE_PREFIX)
+        repo = db.query(Repository).filter_by(full_name=full_name).one_or_none()
+        return [repo] if repo else []
+    return db.query(Repository).filter_by(is_active=True, org_name=checkpoint.org_name).all()
+
+
+def _is_repository_checkup(checkpoint: Checkpoint) -> bool:
+    return checkpoint.notes.startswith(REPOSITORY_CHECKUP_NOTE_PREFIX)
 
 
 def _build_summary(

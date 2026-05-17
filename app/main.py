@@ -16,7 +16,8 @@ from app.config import get_settings
 from app.db import get_db, init_db
 from app.github_client import GitHubClient
 from app.models import ActivitySummary, Checkpoint, Commit, OutsideWorkNote, Repository, Team, User
-from app.services.ingest import HISTORY_CHECKPOINT_DAY_TIME, ingest_activity, refresh_checkpoint_activity, refresh_repository_commit_history
+from app.services.checkups import REPOSITORY_CHECKUP_NOTE_PREFIX
+from app.services.ingest import HISTORY_CHECKPOINT_DAY_TIME, ingest_activity, ingest_repository_checkup, refresh_checkpoint_activity, refresh_repository_commit_history
 from app.services.reports import export_report
 from app.services.summary import rebuild_summaries
 
@@ -85,7 +86,8 @@ def _dashboard_context(request: Request, db: Session, error: str = "") -> dict[s
             db.query(ActivitySummary)
             .options(joinedload(ActivitySummary.review))
             .filter_by(checkpoint_id=checkpoint.id)
-            .order_by(ActivitySummary.scope, ActivitySummary.subject)
+            .filter_by(scope="repo")
+            .order_by(ActivitySummary.subject)
             .all()
         )
     return {
@@ -121,6 +123,13 @@ def _github_error_detail(exc: HTTPError) -> str:
     documentation_url = payload.get("documentation_url", "")
     details = [message, documentation_url]
     return " ".join(detail for detail in details if detail).strip()
+
+
+def _parse_datetime_input(value: str, field_name: str) -> datetime:
+    try:
+        return datetime.fromisoformat(value)
+    except ValueError as exc:
+        raise ValueError(f"{field_name} must be an ISO datetime, like 2026-05-01T09:00:00") from exc
 
 
 @app.get("/teams")
@@ -176,6 +185,30 @@ def _repositories_response(request: Request, db: Session, error: str = "", notic
     repos = db.query(Repository).order_by(Repository.full_name).all()
     repo_cards = [_repository_card_context(db, repo) for repo in repos]
     return templates.TemplateResponse("repositories.html", {"request": request, "repo_cards": repo_cards, "error": error, "notice": notice})
+
+
+@app.post("/repositories/{repository_id}/checkup")
+def create_repository_checkup(
+    repository_id: int,
+    request: Request,
+    since: str = Form(...),
+    until: str = Form(...),
+    report_format: str = Form("view"),
+    db: Session = Depends(get_db),
+    _: None = Depends(require_admin),
+) -> Response:
+    repo = db.get(Repository, repository_id)
+    if not repo:
+        raise HTTPException(status_code=404)
+    try:
+        checkpoint = ingest_repository_checkup(db, repo, _parse_datetime_input(since, "Since"), _parse_datetime_input(until, "Until"))
+    except ValueError as exc:
+        return _repository_detail_response(request, db, repo, error=str(exc))
+
+    if report_format in {"markdown", "pdf"}:
+        path = export_report(db, checkpoint, report_format)
+        return FileResponse(path)
+    return RedirectResponse(f"/checkpoint/{checkpoint.id}", status_code=303)
 
 
 def _repository_card_context(db: Session, repo: Repository) -> dict[str, object]:
@@ -262,6 +295,29 @@ def _repository_contributors(db: Session, repo: Repository) -> list[dict[str, ob
     return contributors[:10]
 
 
+def _sync_repo_collaborators(db: Session, repo: Repository) -> tuple[int, int, int]:
+    collaborator_logins = GitHubClient(settings.github_token).list_collaborators(repo.org_name, repo.name)
+    team = _ensure_team_for_repo(db, repo)
+    existing_users = {user.github_username.lower(): user for user in db.query(User).all()}
+    created = 0
+    updated = 0
+    for login in collaborator_logins:
+        user = existing_users.get(login.lower())
+        if not user:
+            user = User(github_username=login, team_id=team.id)
+            db.add(user)
+            existing_users[login.lower()] = user
+            created += 1
+        else:
+            user.is_active = True
+            if user.canonical_user_id is None and user.team_id != team.id:
+                user.team_id = team.id
+                updated += 1
+        db.flush()
+        db.query(Commit).filter(func.lower(Commit.author_login) == login.lower()).update({"author_id": user.id}, synchronize_session=False)
+    return len(collaborator_logins), created, updated
+
+
 @app.get("/repositories/{repository_id}")
 def repository_detail(repository_id: int, request: Request, db: Session = Depends(get_db), _: None = Depends(require_admin)) -> Response:
     repo = db.get(Repository, repository_id)
@@ -274,7 +330,8 @@ def repository_detail(repository_id: int, request: Request, db: Session = Depend
 def merge_member_alias(
     repository_id: int,
     canonical_user_id: int = Form(...),
-    alias_user_id: int = Form(...),
+    alias_user_id: str = Form(""),
+    raw_author_login: str = Form(""),
     db: Session = Depends(get_db),
     _: None = Depends(require_admin),
 ) -> Response:
@@ -282,12 +339,23 @@ def merge_member_alias(
     if not repo:
         raise HTTPException(status_code=404)
     canonical = db.get(User, canonical_user_id)
-    alias = db.get(User, alias_user_id)
-    if not canonical or not alias:
+    if not canonical:
         raise HTTPException(status_code=404)
-    if canonical.id != alias.id:
-        alias.canonical_user_id = canonical.canonical_user_id or canonical.id
-        alias.team_id = canonical.team_id
+    target_id = canonical.canonical_user_id or canonical.id
+
+    if alias_user_id:
+        alias = db.get(User, int(alias_user_id))
+        if not alias:
+            raise HTTPException(status_code=404)
+        if canonical.id != alias.id:
+            alias.canonical_user_id = target_id
+            alias.team_id = canonical.team_id
+
+    raw_author_login = raw_author_login.strip()
+    if raw_author_login:
+        db.query(Commit).filter(func.lower(Commit.author_login) == raw_author_login.lower()).update({"author_id": target_id}, synchronize_session=False)
+
+    if alias_user_id or raw_author_login:
         db.commit()
     return RedirectResponse(f"/repositories/{repository_id}", status_code=303)
 
@@ -301,6 +369,9 @@ def _checkpoint_response(checkpoint_id: int, request: Request, db: Session, erro
     checkpoint = db.get(Checkpoint, checkpoint_id)
     if not checkpoint or checkpoint.checkpoint_day_time == HISTORY_CHECKPOINT_DAY_TIME:
         raise HTTPException(status_code=404)
+    title = f"{checkpoint.org_name} checkpoint"
+    if checkpoint.notes.startswith(REPOSITORY_CHECKUP_NOTE_PREFIX):
+        title = f"{checkpoint.notes.removeprefix(REPOSITORY_CHECKUP_NOTE_PREFIX)} checkup"
     summaries = (
         db.query(ActivitySummary)
         .options(joinedload(ActivitySummary.review))
@@ -309,7 +380,7 @@ def _checkpoint_response(checkpoint_id: int, request: Request, db: Session, erro
         .all()
     )
     notes = db.query(OutsideWorkNote).filter_by(checkpoint_id=checkpoint.id).all()
-    return templates.TemplateResponse("checkpoint.html", {"request": request, "checkpoint": checkpoint, "summaries": summaries, "notes": notes, "error": error})
+    return templates.TemplateResponse("checkpoint.html", {"request": request, "checkpoint": checkpoint, "title": title, "summaries": summaries, "notes": notes, "error": error})
 
 
 @app.post("/checkpoint/{checkpoint_id}/refresh")
@@ -414,6 +485,47 @@ def refresh_repo_commit_history(
     return _repository_detail_response(request, db, repo, notice=f"Refreshed {commit_count} commits for {repo.full_name}.")
 
 
+@app.post("/repositories/{repository_id}/reset-data")
+def reset_repo_data(
+    repository_id: int,
+    request: Request,
+    db: Session = Depends(get_db),
+    _: None = Depends(require_admin),
+) -> Response:
+    repo = db.get(Repository, repository_id)
+    if not repo:
+        raise HTTPException(status_code=404)
+
+    team = db.query(Team).options(joinedload(Team.members)).filter_by(name=repo.full_name).one_or_none()
+    if team:
+        member_ids = [member.id for member in team.members]
+        if member_ids:
+            db.query(User).filter(User.id.in_(member_ids)).update({"team_id": None, "canonical_user_id": None}, synchronize_session=False)
+    db.query(Checkpoint).filter_by(notes=f"commit-history:{repo.full_name}", checkpoint_day_time=HISTORY_CHECKPOINT_DAY_TIME).delete(synchronize_session=False)
+    db.query(Commit).filter_by(repository_id=repo.id).delete(synchronize_session=False)
+    db.commit()
+
+    try:
+        synced_count, created_count, moved_count = _sync_repo_collaborators(db, repo)
+        db.commit()
+        commit_count = refresh_repository_commit_history(db, repo)
+    except HTTPError as exc:
+        response = exc.response
+        target = response.url.split("?", 1)[0] if response is not None else "GitHub API"
+        status_code = response.status_code if response is not None else "unknown"
+        detail = _github_error_detail(exc)
+        message = f"Repository data was reset, but refresh failed with status {status_code} for {target}. {detail}"
+        return _repository_detail_response(request, db, repo, error=message)
+    except ValueError as exc:
+        return _repository_detail_response(request, db, repo, error=f"Repository data was reset, but refresh failed: {exc}")
+
+    notice = (
+        f"Reset {repo.full_name}, scanned {synced_count} collaborators "
+        f"({created_count} added, {moved_count} moved), and ingested {commit_count} commits."
+    )
+    return _repository_detail_response(request, db, repo, notice=notice)
+
+
 @app.post("/repositories/{repository_id}/sync-collaborators")
 def sync_repo_collaborators(
     repository_id: int,
@@ -426,7 +538,7 @@ def sync_repo_collaborators(
         raise HTTPException(status_code=404)
 
     try:
-        collaborator_logins = GitHubClient(settings.github_token).list_collaborators(repo.org_name, repo.name)
+        synced_count, created, updated = _sync_repo_collaborators(db, repo)
     except HTTPError as exc:
         response = exc.response
         target = response.url.split("?", 1)[0] if response is not None else "GitHub API"
@@ -437,27 +549,9 @@ def sync_repo_collaborators(
     except ValueError as exc:
         return _repository_detail_response(request, db, repo, error=str(exc))
 
-    team = _ensure_team_for_repo(db, repo)
-    existing_users = {user.github_username.lower(): user for user in db.query(User).all()}
-    created = 0
-    updated = 0
-    for login in collaborator_logins:
-        user = existing_users.get(login.lower())
-        if not user:
-            user = User(github_username=login, team_id=team.id)
-            db.add(user)
-            existing_users[login.lower()] = user
-            created += 1
-        else:
-            user.is_active = True
-            if user.canonical_user_id is None and user.team_id != team.id:
-                user.team_id = team.id
-                updated += 1
-        db.flush()
-        db.query(Commit).filter(func.lower(Commit.author_login) == login.lower()).update({"author_id": user.id}, synchronize_session=False)
     db.commit()
 
-    notice = f"Synced {len(collaborator_logins)} collaborators into {team.name}: {created} added, {updated} moved."
+    notice = f"Synced {synced_count} collaborators into {repo.full_name}: {created} added, {updated} moved."
     return _repository_detail_response(request, db, repo, notice=notice)
 
 

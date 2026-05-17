@@ -72,6 +72,8 @@ You can also pass an explicit organization:
 python -m app.cli ingest --org my-org --since 2026-05-01T09:00:00 --until 2026-05-08T09:00:00
 ```
 
+From the web app, open **Repositories** and use **Repository checkup** to select one repository, choose a date range, and either open the checkup or generate a Markdown/PDF report.
+
 ## Export reports
 
 ```powershell

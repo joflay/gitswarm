@@ -32,19 +32,20 @@
 </section>
 
 <section>
-  <h2>Progress</h2>
+  <h2>Repository progress</h2>
   <table>
-    <thead><tr><th>Scope</th><th>Subject</th><th>Status</th><th>Review</th><th>Score</th><th>Activity</th></tr></thead>
+    <thead><tr><th>Repository</th><th>Status</th><th>Review</th><th>Score</th><th>Activity</th></tr></thead>
     <tbody>
       {% for summary in summaries %}
       <tr>
-        <td>{{ summary.scope }}</td>
         <td>{{ summary.subject }}</td>
         <td><span class="status {{ summary.review.status if summary.review else '' }}">{{ summary.review.status if summary.review else '' }}</span></td>
         <td>{{ summary.review.review if summary.review else '' }}</td>
         <td>{{ summary.review.score if summary.review else 0 }}</td>
         <td>{{ summary.commits_count }} commits, {{ summary.prs_opened }} PRs opened, {{ summary.prs_merged }} merged, {{ summary.issues_closed }} issues closed</td>
       </tr>
+      {% else %}
+      <tr><td colspan="5" class="muted">No repository progress recorded for the latest checkpoint.</td></tr>
       {% endfor %}
     </tbody>
   </table>

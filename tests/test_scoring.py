@@ -2,6 +2,7 @@ import json
 from datetime import datetime
 
 from app.models import ActivitySummary, Checkpoint, Commit, Repository, Team, User
+from app.services.ingest import ingest_repository_checkup
 from app.services.scoring import score_summary
 from app.services.summary import rebuild_summaries
 
@@ -113,3 +114,43 @@ def test_rebuild_summaries_rolls_alias_commits_into_canonical_member(sqlite_sess
     assert len(member_summaries) == 1
     assert member_summaries[0].subject == "joflay"
     assert member_summaries[0].commits_count == 2
+
+
+def test_repository_checkup_scopes_summaries_to_selected_repository(sqlite_session):
+    web_team = Team(name="acme/web")
+    api_team = Team(name="acme/api")
+    web_user = User(github_username="alice", team=web_team)
+    api_user = User(github_username="bob", team=api_team)
+    web_repo = Repository(org_name="acme", name="web", full_name="acme/web")
+    api_repo = Repository(org_name="acme", name="api", full_name="acme/api")
+    history = Checkpoint(org_name="acme", since=datetime(1970, 1, 1), until=datetime(2026, 5, 8), checkpoint_day_time="commit-history-cache")
+    sqlite_session.add_all([web_team, api_team, web_user, api_user, web_repo, api_repo, history])
+    sqlite_session.flush()
+    sqlite_session.add_all(
+        [
+            Commit(
+                checkpoint_id=history.id,
+                repository_id=web_repo.id,
+                author_id=web_user.id,
+                author_login="alice",
+                sha="web",
+                message="web work",
+                committed_at=datetime(2026, 5, 2),
+            ),
+            Commit(
+                checkpoint_id=history.id,
+                repository_id=api_repo.id,
+                author_id=api_user.id,
+                author_login="bob",
+                sha="api",
+                message="api work",
+                committed_at=datetime(2026, 5, 2),
+            ),
+        ]
+    )
+    sqlite_session.commit()
+
+    checkpoint = ingest_repository_checkup(sqlite_session, web_repo, datetime(2026, 5, 1), datetime(2026, 5, 8))
+    summaries = sqlite_session.query(ActivitySummary).filter_by(checkpoint_id=checkpoint.id).all()
+
+    assert {(summary.scope, summary.subject) for summary in summaries} == {("member", "alice"), ("repo", "acme/web")}

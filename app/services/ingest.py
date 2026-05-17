@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 from app.config import get_settings
 from app.github_client import GitHubClient
 from app.models import Checkpoint, Commit, Issue, PullRequest, Repository, User
+from app.services.checkups import REPOSITORY_CHECKUP_NOTE_PREFIX
 from app.services.summary import rebuild_summaries
 
 
@@ -25,6 +26,24 @@ def ingest_activity(db: Session, org: str | None, since: datetime, until: dateti
         raise ValueError("No active repositories configured for ingestion")
 
     checkpoint = Checkpoint(org_name=org or repositories[0].org_name, since=since, until=until, checkpoint_day_time=checkpoint_day_time)
+    db.add(checkpoint)
+    db.commit()
+    rebuild_summaries(db, checkpoint)
+    db.refresh(checkpoint)
+    return checkpoint
+
+
+def ingest_repository_checkup(db: Session, repo: Repository, since: datetime, until: datetime, checkpoint_day_time: str = "Repository checkup") -> Checkpoint:
+    if until < since:
+        raise ValueError("Until must be after since")
+
+    checkpoint = Checkpoint(
+        org_name=repo.org_name,
+        since=since,
+        until=until,
+        checkpoint_day_time=checkpoint_day_time,
+        notes=f"{REPOSITORY_CHECKUP_NOTE_PREFIX}{repo.full_name}",
+    )
     db.add(checkpoint)
     db.commit()
     rebuild_summaries(db, checkpoint)
@@ -59,7 +78,15 @@ def refresh_repository_commit_history(db: Session, repo: Repository) -> int:
 
 def _history_checkpoint(db: Session, repo: Repository) -> Checkpoint:
     notes = f"commit-history:{repo.full_name}"
-    checkpoint = db.query(Checkpoint).filter_by(notes=notes, checkpoint_day_time=HISTORY_CHECKPOINT_DAY_TIME).one_or_none()
+    checkpoints = (
+        db.query(Checkpoint)
+        .filter_by(notes=notes, checkpoint_day_time=HISTORY_CHECKPOINT_DAY_TIME)
+        .order_by(Checkpoint.updated_at.desc(), Checkpoint.id.desc())
+        .all()
+    )
+    checkpoint = checkpoints[0] if checkpoints else None
+    for duplicate in checkpoints[1:]:
+        db.delete(duplicate)
     if checkpoint:
         checkpoint.org_name = repo.org_name
         checkpoint.since = HISTORY_SINCE

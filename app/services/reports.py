@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session, joinedload
 
 from app.config import get_settings
 from app.models import ActivitySummary, Checkpoint, OutsideWorkNote
+from app.services.checkups import REPOSITORY_CHECKUP_NOTE_PREFIX
 
 
 def render_markdown_report(db: Session, checkpoint: Checkpoint) -> str:
@@ -18,8 +19,11 @@ def render_markdown_report(db: Session, checkpoint: Checkpoint) -> str:
         .all()
     )
     notes = db.query(OutsideWorkNote).filter_by(checkpoint_id=checkpoint.id).all()
+    title = f"GitSwarm Weekly Report: {checkpoint.org_name}"
+    if checkpoint.notes.startswith(REPOSITORY_CHECKUP_NOTE_PREFIX):
+        title = f"GitSwarm Repository Checkup: {checkpoint.notes.removeprefix(REPOSITORY_CHECKUP_NOTE_PREFIX)}"
     lines = [
-        f"# GitSwarm Weekly Report: {checkpoint.org_name}",
+        f"# {title}",
         "",
         f"**Window:** {checkpoint.since.isoformat()} to {checkpoint.until.isoformat()}",
         "",

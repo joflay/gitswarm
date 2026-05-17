@@ -20,7 +20,24 @@
     <form method="post" action="/repositories/{{ repo.id }}/sync-collaborators">
       <button type="submit">Scan members</button>
     </form>
+    <form method="post" action="/repositories/{{ repo.id }}/reset-data">
+      <button type="submit" class="secondary">Reset and refresh</button>
+    </form>
   </div>
+</section>
+
+<section class="panel">
+  <h2>Repository checkup</h2>
+  <form method="post" action="/repositories/{{ repo.id }}/checkup" class="checkup-form">
+    <input type="datetime-local" name="since" required>
+    <input type="datetime-local" name="until" required>
+    <select name="report_format">
+      <option value="view">Open checkup</option>
+      <option value="markdown">Markdown report</option>
+      <option value="pdf">PDF report</option>
+    </select>
+    <button type="submit">Run checkup</button>
+  </form>
 </section>
 
 <section class="metric-grid">
@@ -111,7 +128,7 @@
       <option value="{{ member.id }}">{{ member.github_username }}</option>
       {% endfor %}
     </select>
-    <select name="alias_user_id" required>
+    <select name="alias_user_id">
       <option value="">Alias account</option>
       {% for member in members|sort(attribute="github_username") %}
       <option value="{{ member.id }}">{{ member.github_username }}</option>
@@ -120,9 +137,10 @@
       <option value="{{ member.id }}">{{ member.github_username }}</option>
       {% endfor %}
     </select>
+    <input name="raw_author_login" placeholder="or raw author name">
     <button type="submit">Merge alias</button>
   </form>
-  <p class="muted">Merged aliases stay visible, but checkpoint grading and contributor counts roll them into the primary member.</p>
+  <p class="muted">Use the raw author name field for commit names that are not scanned GitHub accounts, like a local Git author name.</p>
 </section>
 
 <section>

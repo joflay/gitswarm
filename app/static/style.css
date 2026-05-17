@@ -168,6 +168,12 @@ th { background: var(--panel); }
   align-items: center;
   margin-top: 10px;
 }
+.checkup-form {
+  display: grid;
+  grid-template-columns: minmax(180px, 1.4fr) minmax(170px, 1fr) minmax(170px, 1fr) minmax(150px, 0.9fr) auto;
+  gap: 10px;
+  align-items: center;
+}
 .check-row {
   display: flex;
   gap: 6px;
