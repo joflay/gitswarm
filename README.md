@@ -5,7 +5,7 @@ GitHub project progress tracker MVP for weekly checkpoint reports across reposit
 ## What it does
 
 - Connects to GitHub with `GITHUB_TOKEN`.
-- Stores repositories, repository-backed teams, scanned members, checkpoints, activity, summaries, reviews, and outside-work notes.
+- Stores repositories, repository-backed teams, commit authors, checkpoints, activity, summaries, reviews, and outside-work notes.
 - Ingests full repository commit history when a repository is added or refreshed.
 - Grades checkpoint intervals from the locally cached commit history.
 - Generates explainable red/yellow/green progress reviews using deterministic heuristics.
@@ -58,7 +58,7 @@ python -m app.cli init-db
 uvicorn app.main:app --reload
 ```
 
-Open `http://127.0.0.1:8000`, log in with `ADMIN_USERNAME` and `ADMIN_PASSWORD`, then add repositories. Each repository creates a team and ingests full commit history. Scanning collaborators adds members to that team.
+Open `http://127.0.0.1:8000`, log in with `ADMIN_USERNAME` and `ADMIN_PASSWORD`, then add repositories. Each repository creates a team and ingests full commit history. Team membership is based on GitHub-linked commit authors and is reconciled whenever commit history is refreshed.
 
 ## Grade an interval
 

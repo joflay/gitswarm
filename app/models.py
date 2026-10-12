@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String, Text, UniqueConstraint
+from sqlalchemy import Boolean, Column, DateTime, ForeignKey, Integer, String, Table, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db import Base
@@ -11,6 +11,14 @@ from app.db import Base
 class TimestampMixin:
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+team_memberships = Table(
+    "team_memberships",
+    Base.metadata,
+    Column("team_id", ForeignKey("teams.id", ondelete="CASCADE"), primary_key=True),
+    Column("user_id", ForeignKey("users.id", ondelete="CASCADE"), primary_key=True),
+)
 
 
 class User(TimestampMixin, Base):
@@ -22,7 +30,8 @@ class User(TimestampMixin, Base):
     team_id: Mapped[int | None] = mapped_column(ForeignKey("teams.id"), nullable=True)
     canonical_user_id: Mapped[int | None] = mapped_column(ForeignKey("users.id"), nullable=True, index=True)
 
-    team: Mapped[Team | None] = relationship(back_populates="members")
+    team: Mapped[Team | None] = relationship(foreign_keys=[team_id])
+    teams: Mapped[list[Team]] = relationship(secondary=team_memberships, back_populates="members")
     canonical_user: Mapped[User | None] = relationship(remote_side="User.id", back_populates="aliases")
     aliases: Mapped[list[User]] = relationship(back_populates="canonical_user")
     commits: Mapped[list[Commit]] = relationship(back_populates="author")
@@ -35,7 +44,7 @@ class Team(TimestampMixin, Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     name: Mapped[str] = mapped_column(String(200), unique=True)
 
-    members: Mapped[list[User]] = relationship(back_populates="team")
+    members: Mapped[list[User]] = relationship(secondary=team_memberships, back_populates="teams")
     summaries: Mapped[list[ActivitySummary]] = relationship(back_populates="team")
 
 

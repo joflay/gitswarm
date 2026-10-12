@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 
 from app.config import get_settings
 from app.github_client import GitHubClient
-from app.models import Checkpoint, Commit, Issue, PullRequest, Repository, User
+from app.models import Checkpoint, Commit, Issue, PullRequest, Repository, Team, User
 from app.services.checkups import REPOSITORY_CHECKUP_NOTE_PREFIX
 from app.services.summary import rebuild_summaries
 
@@ -67,13 +67,58 @@ def refresh_repository_commit_history(db: Session, repo: Repository) -> int:
     db.query(Commit).filter_by(checkpoint_id=checkpoint.id, repository_id=repo.id).delete(synchronize_session=False)
     db.flush()
 
-    users_by_login = {user.github_username.lower(): user for user in db.query(User).all()}
     commits = client.list_commits(repo.org_name, repo.name)
+    sync_repository_committers(db, repo, [item.github_login for item in commits])
+    users_by_login = {user.github_username.lower(): user for user in db.query(User).all()}
     for item in commits:
         _add_commit(db, checkpoint, repo, users_by_login, item)
     checkpoint.until = datetime.utcnow()
     db.commit()
     return len(commits)
+
+
+def sync_repository_committers(db: Session, repo: Repository, author_logins: list[str]) -> tuple[int, int, int]:
+    team = db.query(Team).filter_by(name=repo.full_name).one_or_none()
+    if team is None:
+        team = Team(name=repo.full_name)
+        db.add(team)
+        db.flush()
+
+    users_by_login = {user.github_username.casefold(): user for user in db.query(User).all()}
+    desired_users: dict[int, User] = {}
+    created = 0
+    added = 0
+    for raw_login in author_logins:
+        login = raw_login.strip()
+        if not login:
+            continue
+        user = users_by_login.get(login.casefold())
+        if user is None:
+            user = User(github_username=login)
+            db.add(user)
+            db.flush()
+            users_by_login[login.casefold()] = user
+            created += 1
+
+        member = db.get(User, user.canonical_user_id) if user.canonical_user_id else user
+        if member is None:
+            member = user
+        desired_users[member.id] = member
+        member.is_active = True
+        if team not in member.teams:
+            member.teams.append(team)
+            added += 1
+        if member.team_id is None:
+            member.team_id = team.id
+
+    for member in list(team.members):
+        if member.id in desired_users:
+            continue
+        team.members.remove(member)
+        if member.team_id == team.id:
+            member.team_id = next((other.id for other in member.teams), None)
+
+    return len(desired_users), created, added
 
 
 def _history_checkpoint(db: Session, repo: Repository) -> Checkpoint:

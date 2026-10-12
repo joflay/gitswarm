@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from fastapi import Depends, FastAPI, Form, HTTPException, Request, Response
 from fastapi.responses import FileResponse, RedirectResponse
@@ -27,6 +27,7 @@ app = FastAPI(title="GitSwarm")
 templates = Jinja2Templates(directory="app/templates")
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
 serializer = URLSafeSerializer(settings.secret_key, salt="gitswarm-session")
+REFRESH_EXCLUDED_REPOSITORIES = {"options updater", "stocks update", "options model"}
 
 
 @app.on_event("startup")
@@ -100,11 +101,44 @@ def _dashboard_context(request: Request, db: Session, error: str = "") -> dict[s
         "request": request,
         "checkpoints": checkpoints,
         "checkpoint": checkpoint,
+        "checkpoint_form": _checkpoint_form_context(db, checkpoint),
+        "recent_checkpoints": checkpoints[:5],
         "summaries": summaries,
         "teams": db.query(Team).order_by(Team.name).all(),
         "repos": db.query(Repository).order_by(Repository.full_name).all(),
         "users": db.query(User).order_by(User.github_username).all(),
         "error": error,
+    }
+
+
+def _checkpoint_form_context(db: Session, checkpoint: Checkpoint | None, now: datetime | None = None) -> dict[str, object]:
+    org_options = [
+        org_name
+        for (org_name,) in db.query(Repository.org_name)
+        .filter_by(is_active=True)
+        .distinct()
+        .order_by(Repository.org_name)
+        .all()
+    ]
+    current_time = (now or datetime.utcnow()).replace(second=0, microsecond=0)
+    if checkpoint:
+        since = checkpoint.until.replace(second=0, microsecond=0)
+        until = since + timedelta(days=7)
+        selected_org = checkpoint.org_name
+        checkpoint_day_time = checkpoint.checkpoint_day_time or until.strftime("%A %H:%M")
+    else:
+        until = current_time
+        since = until - timedelta(days=7)
+        selected_org = org_options[0] if org_options else ""
+        checkpoint_day_time = until.strftime("%A %H:%M")
+    if selected_org not in org_options and org_options:
+        selected_org = org_options[0]
+    return {
+        "org_options": org_options,
+        "selected_org": selected_org,
+        "since": since.strftime("%Y-%m-%dT%H:%M"),
+        "until": until.strftime("%Y-%m-%dT%H:%M"),
+        "checkpoint_day_time": checkpoint_day_time,
     }
 
 
@@ -118,7 +152,10 @@ def _ensure_team_for_repo(db: Session, repo: Repository) -> Team:
 
 
 def _delete_team(db: Session, team: Team) -> None:
-    db.query(User).filter_by(team_id=team.id).update({"team_id": None}, synchronize_session=False)
+    for member in list(team.members):
+        team.members.remove(member)
+        if member.team_id == team.id:
+            member.team_id = next((other.id for other in member.teams), None)
     db.query(ActivitySummary).filter_by(team_id=team.id).update({"team_id": None}, synchronize_session=False)
     db.query(OutsideWorkNote).filter_by(team_id=team.id).update({"team_id": None}, synchronize_session=False)
     db.delete(team)
@@ -192,9 +229,39 @@ def members_index(request: Request, db: Session = Depends(get_db), _: None = Dep
         {
             "request": request,
             "users": users,
+            "user_scores": _latest_member_scores(db, users),
             "teams": db.query(Team).order_by(Team.name).all(),
         },
     )
+
+
+def _latest_member_scores(db: Session, users: list[User]) -> dict[int, int]:
+    checkpoint = (
+        db.query(Checkpoint)
+        .filter(Checkpoint.checkpoint_day_time != HISTORY_CHECKPOINT_DAY_TIME)
+        .filter(~Checkpoint.notes.startswith(REPOSITORY_CHECKUP_NOTE_PREFIX))
+        .order_by(Checkpoint.until.desc(), Checkpoint.id.desc())
+        .first()
+    )
+    if not checkpoint or not users:
+        return {}
+
+    user_ids = [user.id for user in users]
+    ids_by_username = {user.github_username: user.id for user in users}
+    summaries = (
+        db.query(ActivitySummary)
+        .options(joinedload(ActivitySummary.review))
+        .filter_by(checkpoint_id=checkpoint.id, scope="member")
+        .filter((ActivitySummary.user_id.in_(user_ids)) | (ActivitySummary.subject.in_(ids_by_username.keys())))
+        .all()
+    )
+
+    scores: dict[int, int] = {}
+    for summary in summaries:
+        user_id = summary.user_id or ids_by_username.get(summary.subject)
+        if user_id and summary.review:
+            scores[user_id] = summary.review.score
+    return scores
 
 
 @app.get("/repositories")
@@ -208,7 +275,143 @@ def repositories_index(request: Request, db: Session = Depends(get_db), _: None 
 def _repositories_response(request: Request, db: Session, error: str = "", notice: str = "") -> Response:
     repos = db.query(Repository).order_by(Repository.full_name).all()
     repo_cards = [_repository_card_context(db, repo) for repo in repos]
-    return templates.TemplateResponse("repositories.html", {"request": request, "repo_cards": repo_cards, "error": error, "notice": notice})
+    org_names = sorted({repo.org_name for repo in repos if repo.is_active})
+    return templates.TemplateResponse(
+        "repositories.html",
+        {
+            "request": request,
+            "repo_cards": repo_cards,
+            "org_names": org_names,
+            "default_org": org_names[0] if len(org_names) == 1 else "",
+            "error": error,
+            "notice": notice,
+        },
+    )
+
+
+def _normalized_repository_name(name: str) -> str:
+    return " ".join(name.casefold().replace("_", " ").replace("-", " ").split())
+
+
+@app.post("/repositories/sync-from-github")
+def sync_org_repositories(
+    request: Request,
+    org_name: str = Form(...),
+    db: Session = Depends(get_db),
+    _: None = Depends(require_admin),
+) -> Response:
+    org_name = org_name.strip()
+    if not org_name or "/" in org_name:
+        return _repositories_response(request, db, error="Enter a GitHub organization name, without a slash.")
+
+    try:
+        full_names = GitHubClient(settings.github_token).list_repositories(org_name)
+    except HTTPError as exc:
+        response = exc.response
+        status_code = response.status_code if response is not None else "unknown"
+        detail = _github_error_detail(exc)
+        return _repositories_response(
+            request,
+            db,
+            error=f"Could not list repositories for {org_name} (HTTP {status_code}). {detail}".strip(),
+        )
+    except ValueError as exc:
+        return _repositories_response(request, db, error=str(exc))
+
+    added: list[str] = []
+    refreshed: list[tuple[str, int]] = []
+    skipped: list[str] = []
+    inactive: list[str] = []
+    failures: list[str] = []
+    for full_name in full_names:
+        owner, _, name = full_name.partition("/")
+        if owner.casefold() != org_name.casefold():
+            continue
+        if _normalized_repository_name(name) in REFRESH_EXCLUDED_REPOSITORIES:
+            skipped.append(full_name)
+            continue
+
+        repo = db.query(Repository).filter_by(full_name=full_name).one_or_none()
+        if repo is None:
+            repo = Repository(org_name=owner, name=name, full_name=full_name)
+            db.add(repo)
+            db.flush()
+            _ensure_team_for_repo(db, repo)
+            db.commit()
+            added.append(full_name)
+        elif not repo.is_active:
+            inactive.append(full_name)
+            continue
+
+        try:
+            commit_count = refresh_repository_commit_history(db, repo)
+            refreshed.append((full_name, commit_count))
+        except HTTPError as exc:
+            db.rollback()
+            response = exc.response
+            status_code = response.status_code if response is not None else "unknown"
+            detail = _github_error_detail(exc)
+            failures.append(f"{full_name}: HTTP {status_code} {detail}".strip())
+        except ValueError as exc:
+            db.rollback()
+            failures.append(f"{full_name}: {exc}")
+
+    total_commits = sum(count for _, count in refreshed)
+    notice_parts = [f"Discovered {len(full_names)} repositories in {org_name}."]
+    notice_parts.append(f"Added {len(added)} and refreshed {len(refreshed)} ({total_commits} commits).")
+    if skipped:
+        notice_parts.append(f"Excluded: {', '.join(skipped)}.")
+    if inactive:
+        notice_parts.append(f"Left inactive: {', '.join(inactive)}.")
+    if added:
+        notice_parts.append(f"Added: {', '.join(added)}.")
+    if refreshed:
+        notice_parts.append("Refreshed: " + ", ".join(name for name, _ in refreshed) + ".")
+    error = "Some repositories could not be refreshed: " + "; ".join(failures) if failures else ""
+    return _repositories_response(request, db, error=error, notice=" ".join(notice_parts))
+
+
+@app.post("/repositories/refresh-all-commit-history")
+def refresh_all_repo_commit_history(
+    request: Request,
+    db: Session = Depends(get_db),
+    _: None = Depends(require_admin),
+) -> Response:
+    repositories = db.query(Repository).filter_by(is_active=True).order_by(Repository.full_name).all()
+    skipped: list[str] = []
+    targets: list[Repository] = []
+    for repo in repositories:
+        if _normalized_repository_name(repo.name) in REFRESH_EXCLUDED_REPOSITORIES:
+            skipped.append(repo.full_name)
+        else:
+            targets.append(repo)
+
+    refreshed: list[tuple[str, int]] = []
+    failures: list[str] = []
+    for repo in targets:
+        try:
+            commit_count = refresh_repository_commit_history(db, repo)
+            refreshed.append((repo.full_name, commit_count))
+        except HTTPError as exc:
+            db.rollback()
+            response = exc.response
+            status_code = response.status_code if response is not None else "unknown"
+            detail = _github_error_detail(exc)
+            failures.append(f"{repo.full_name}: HTTP {status_code} {detail}".strip())
+        except ValueError as exc:
+            db.rollback()
+            failures.append(f"{repo.full_name}: {exc}")
+
+    total_commits = sum(count for _, count in refreshed)
+    notice_parts = [f"Refreshed {len(refreshed)} repositories ({total_commits} commits)."]
+    if skipped:
+        notice_parts.append(f"Skipped excluded repositories: {', '.join(skipped)}.")
+    if not targets:
+        notice_parts[0] = "No active repositories to refresh after applying exclusions."
+    error = "Refresh failed for: " + "; ".join(failures) if failures else ""
+    if refreshed:
+        notice_parts.append("Updated: " + ", ".join(name for name, _ in refreshed) + ".")
+    return _repositories_response(request, db, error=error, notice=" ".join(notice_parts))
 
 
 @app.post("/repositories/{repository_id}/checkup")
@@ -356,29 +559,6 @@ def _repository_contributors(db: Session, repo: Repository) -> list[dict[str, ob
     return contributors[:10]
 
 
-def _sync_repo_collaborators(db: Session, repo: Repository) -> tuple[int, int, int]:
-    collaborator_logins = GitHubClient(settings.github_token).list_collaborators(repo.org_name, repo.name)
-    team = _ensure_team_for_repo(db, repo)
-    existing_users = {user.github_username.lower(): user for user in db.query(User).all()}
-    created = 0
-    updated = 0
-    for login in collaborator_logins:
-        user = existing_users.get(login.lower())
-        if not user:
-            user = User(github_username=login, team_id=team.id)
-            db.add(user)
-            existing_users[login.lower()] = user
-            created += 1
-        else:
-            user.is_active = True
-            if user.canonical_user_id is None and user.team_id != team.id:
-                user.team_id = team.id
-                updated += 1
-        db.flush()
-        db.query(Commit).filter(func.lower(Commit.author_login) == login.lower()).update({"author_id": user.id}, synchronize_session=False)
-    return len(collaborator_logins), created, updated
-
-
 @app.get("/repositories/{repository_id}")
 def repository_detail(repository_id: int, request: Request, db: Session = Depends(get_db), _: None = Depends(require_admin)) -> Response:
     repo = db.get(Repository, repository_id)
@@ -403,6 +583,7 @@ def merge_member_alias(
     if not canonical:
         raise HTTPException(status_code=404)
     target_id = canonical.canonical_user_id or canonical.id
+    target_user = db.get(User, target_id) or canonical
 
     if alias_user_id:
         alias = db.get(User, int(alias_user_id))
@@ -410,7 +591,13 @@ def merge_member_alias(
             raise HTTPException(status_code=404)
         if canonical.id != alias.id:
             alias.canonical_user_id = target_id
-            alias.team_id = canonical.team_id
+            for team in list(alias.teams):
+                if team not in target_user.teams:
+                    target_user.teams.append(team)
+                alias.teams.remove(team)
+            if target_user.team_id is None and target_user.teams:
+                target_user.team_id = target_user.teams[0].id
+            alias.team_id = target_user.team_id
 
     raw_author_login = raw_author_login.strip()
     if raw_author_login:
@@ -559,16 +746,15 @@ def reset_repo_data(
 
     team = db.query(Team).options(joinedload(Team.members)).filter_by(name=repo.full_name).one_or_none()
     if team:
-        member_ids = [member.id for member in team.members]
-        if member_ids:
-            db.query(User).filter(User.id.in_(member_ids)).update({"team_id": None, "canonical_user_id": None}, synchronize_session=False)
+        for member in list(team.members):
+            team.members.remove(member)
+            if member.team_id == team.id:
+                member.team_id = next((other.id for other in member.teams), None)
     db.query(Checkpoint).filter_by(notes=f"commit-history:{repo.full_name}", checkpoint_day_time=HISTORY_CHECKPOINT_DAY_TIME).delete(synchronize_session=False)
     db.query(Commit).filter_by(repository_id=repo.id).delete(synchronize_session=False)
     db.commit()
 
     try:
-        synced_count, created_count, moved_count = _sync_repo_collaborators(db, repo)
-        db.commit()
         commit_count = refresh_repository_commit_history(db, repo)
     except HTTPError as exc:
         response = exc.response
@@ -580,39 +766,7 @@ def reset_repo_data(
     except ValueError as exc:
         return _repository_detail_response(request, db, repo, error=f"Repository data was reset, but refresh failed: {exc}")
 
-    notice = (
-        f"Reset {repo.full_name}, scanned {synced_count} collaborators "
-        f"({created_count} added, {moved_count} moved), and ingested {commit_count} commits."
-    )
-    return _repository_detail_response(request, db, repo, notice=notice)
-
-
-@app.post("/repositories/{repository_id}/sync-collaborators")
-def sync_repo_collaborators(
-    repository_id: int,
-    request: Request,
-    db: Session = Depends(get_db),
-    _: None = Depends(require_admin),
-) -> Response:
-    repo = db.get(Repository, repository_id)
-    if not repo:
-        raise HTTPException(status_code=404)
-
-    try:
-        synced_count, created, updated = _sync_repo_collaborators(db, repo)
-    except HTTPError as exc:
-        response = exc.response
-        target = response.url.split("?", 1)[0] if response is not None else "GitHub API"
-        status_code = response.status_code if response is not None else "unknown"
-        detail = _github_error_detail(exc)
-        message = f"GitHub collaborator sync failed with status {status_code} for {target}. {detail}"
-        return _repository_detail_response(request, db, repo, error=message)
-    except ValueError as exc:
-        return _repository_detail_response(request, db, repo, error=str(exc))
-
-    db.commit()
-
-    notice = f"Synced {synced_count} collaborators into {repo.full_name}: {created} added, {updated} moved."
+    notice = f"Reset {repo.full_name}, refreshed {commit_count} commits, and synced its team from commit authors."
     return _repository_detail_response(request, db, repo, notice=notice)
 
 
@@ -627,7 +781,11 @@ def add_manual_checkpoint(
     _: None = Depends(require_admin),
 ) -> Response:
     try:
-        checkpoint = ingest_activity(db, org_name.strip() or None, datetime.fromisoformat(since), datetime.fromisoformat(until), checkpoint_day_time)
+        since_date = datetime.fromisoformat(since)
+        until_date = datetime.fromisoformat(until)
+        if until_date <= since_date:
+            raise ValueError("To must be after From")
+        checkpoint = ingest_activity(db, org_name.strip() or None, since_date, until_date, checkpoint_day_time)
     except HTTPError as exc:
         response = exc.response
         target = response.url.split("?", 1)[0] if response is not None else "GitHub API"

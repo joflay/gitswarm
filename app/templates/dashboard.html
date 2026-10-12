@@ -12,20 +12,54 @@
       <p class="hero-copy">Latest checkpoint: {{ checkpoint.since }} to {{ checkpoint.until }}</p>
       <div class="action-row">
         <a class="button" href="/repositories">Review repositories</a>
+        <a class="button secondary" href="/checkpoint/{{ checkpoint.id }}">Open latest checkpoint</a>
       </div>
     {% else %}
       <p class="hero-copy">No checkpoints yet. Add repositories to ingest commit history, then grade any interval.</p>
     {% endif %}
   </div>
-  <div class="panel hero-panel">
-    <h2>Grade interval</h2>
-    <form method="post" action="/checkpoint/manual" class="stack">
-      <input name="org_name" placeholder="GitHub org" required>
-      <input name="since" placeholder="2026-05-01T09:00:00" required>
-      <input name="until" placeholder="2026-05-08T09:00:00" required>
-      <input name="checkpoint_day_time" placeholder="Friday 09:00">
-      <button type="submit">Grade interval</button>
+  <div class="panel hero-panel checkpoint-panel">
+    <div class="panel-heading">
+      <h2>Create checkpoint</h2>
+      {% if checkpoint %}
+      <span class="muted">Next interval</span>
+      {% endif %}
+    </div>
+    <form method="post" action="/checkpoint/manual" class="checkpoint-create-form">
+      <label>
+        <span>Organization</span>
+        <select name="org_name" required>
+          {% for org_name in checkpoint_form.org_options %}
+          <option value="{{ org_name }}" {% if org_name == checkpoint_form.selected_org %}selected{% endif %}>{{ org_name }}</option>
+          {% else %}
+          <option value="">Add a repository first</option>
+          {% endfor %}
+        </select>
+      </label>
+      <div class="checkpoint-date-grid">
+        <label>
+          <span>From</span>
+          <input name="since" type="datetime-local" value="{{ checkpoint_form.since }}" required>
+        </label>
+        <label>
+          <span>To</span>
+          <input name="until" type="datetime-local" value="{{ checkpoint_form.until }}" required>
+        </label>
+      </div>
+      <label>
+        <span>Cadence label</span>
+        <input name="checkpoint_day_time" value="{{ checkpoint_form.checkpoint_day_time }}">
+      </label>
+      <button type="submit" {% if not checkpoint_form.org_options %}disabled{% endif %}>Create checkpoint</button>
     </form>
+    {% if recent_checkpoints %}
+    <div class="recent-checkpoints">
+      <span class="muted">Recent</span>
+      {% for item in recent_checkpoints %}
+      <a href="/checkpoint/{{ item.id }}">{{ item.org_name }} / {{ item.until.strftime("%b %d") }}</a>
+      {% endfor %}
+    </div>
+    {% endif %}
   </div>
 </section>
 
@@ -40,7 +74,7 @@
   </div>
   <div class="metric">
     <span class="metric-value">{{ users|length }}</span>
-    <span class="muted">scanned members</span>
+    <span class="muted">commit authors</span>
   </div>
 </section>
 
@@ -77,12 +111,12 @@
   </div>
   <div class="panel">
     <h2>Teams</h2>
-    <p class="muted">Review rosters and find teams that need collaborator scans.</p>
+    <p class="muted">Review repository teams built from commit authors.</p>
     <p><a class="button secondary" href="/teams">View teams</a></p>
   </div>
   <div class="panel">
     <h2>Members</h2>
-    <p class="muted">Scan collaborators from repositories to update member coverage.</p>
+    <p class="muted">Refresh repository commit history to update member rosters.</p>
     <p><a class="button secondary" href="/members">View members</a></p>
   </div>
 </section>

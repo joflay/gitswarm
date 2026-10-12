@@ -12,11 +12,26 @@
     <h1>Repositories</h1>
     <p class="muted">Add repositories, open one to manage its team, refresh commit history, and inspect cached activity.</p>
   </div>
-  <form method="post" action="/config/repo" class="inline-form">
-    <input name="org_name" placeholder="org" required>
-    <input name="name" placeholder="repo" required>
-    <button type="submit">Add repo</button>
-  </form>
+  <div class="repo-heading-actions">
+    <form method="post" action="/repositories/sync-from-github" class="inline-form">
+      <input name="org_name" value="{{ default_org }}" list="configured-orgs" placeholder="GitHub org" required>
+      <button type="submit">Sync org repositories</button>
+    </form>
+    <datalist id="configured-orgs">
+      {% for org_name in org_names %}
+      <option value="{{ org_name }}">
+      {% endfor %}
+    </datalist>
+    <p class="muted">Adds missing repos and refreshes history, skipping Options updater, stocks update, and Options Model.</p>
+    <form method="post" action="/repositories/refresh-all-commit-history">
+      <button type="submit" class="secondary">Refresh configured active repos</button>
+    </form>
+    <form method="post" action="/config/repo" class="inline-form">
+      <input name="org_name" placeholder="org" required>
+      <input name="name" placeholder="repo" required>
+      <button type="submit">Add repo</button>
+    </form>
+  </div>
 </section>
 
 <section class="repo-list repo-health-list">

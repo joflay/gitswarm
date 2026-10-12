@@ -34,10 +34,11 @@ def _member_summaries(db: Session, checkpoint: Checkpoint) -> list[ActivitySumma
     repos = _checkpoint_repositories(db, checkpoint)
     repo_ids = [repo.id for repo in repos]
     users_query = db.query(User).filter_by(is_active=True, canonical_user_id=None)
+    team = None
     if len(repos) == 1 and _is_repository_checkup(checkpoint):
         team = db.query(Team).filter_by(name=repos[0].full_name).one_or_none()
         if team:
-            users_query = users_query.filter_by(team_id=team.id)
+            users_query = users_query.filter(User.teams.any(Team.id == team.id))
     users = users_query.all()
     notes_by_user = _notes_by(db.query(OutsideWorkNote).filter_by(checkpoint_id=checkpoint.id).all(), "user_id")
     summaries = []
@@ -59,7 +60,8 @@ def _member_summaries(db: Session, checkpoint: Checkpoint) -> list[ActivitySumma
         notes = notes_by_user[user.id]
         for alias_id in alias_ids:
             notes.extend(notes_by_user[alias_id])
-        summaries.append(_build_summary(checkpoint, commits, prs, issues, "member", user.github_username, user_id=user.id, team_id=user.team_id, notes=notes))
+        summary_team_id = team.id if team else user.team_id
+        summaries.append(_build_summary(checkpoint, commits, prs, issues, "member", user.github_username, user_id=user.id, team_id=summary_team_id, notes=notes))
     return summaries
 
 

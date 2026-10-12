@@ -111,6 +111,12 @@ h2 {
   border-bottom: 1px solid var(--line);
 }
 .page-heading h1 { font-size: clamp(34px, 4vw, 46px); }
+.repo-heading-actions {
+  display: grid;
+  gap: 8px;
+  justify-items: end;
+}
+.repo-heading-actions p { margin: 0; }
 .panel {
   background: var(--panel-strong);
   border: 1px solid var(--line);
@@ -160,6 +166,14 @@ button:hover, .button:hover {
   background: var(--maroon-700);
   box-shadow: 0 9px 18px rgba(80, 0, 0, 0.16);
   transform: translateY(-1px);
+}
+button:disabled {
+  border-color: var(--line);
+  background: #d8d0ca;
+  color: #746b68;
+  cursor: not-allowed;
+  box-shadow: none;
+  transform: none;
 }
 button.secondary, .button.secondary {
   background: white;
@@ -263,6 +277,46 @@ tbody tr:hover { background: #fffbf4; }
 .hero-panel {
   background: rgba(255, 255, 255, 0.88);
   box-shadow: 0 14px 32px rgba(80, 0, 0, 0.1);
+}
+.checkpoint-panel {
+  display: grid;
+  gap: 14px;
+}
+.panel-heading {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: baseline;
+}
+.panel-heading h2 { margin-bottom: 0; }
+.checkpoint-create-form {
+  display: grid;
+  gap: 12px;
+}
+.checkpoint-create-form label {
+  display: grid;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 750;
+}
+.checkpoint-create-form input,
+.checkpoint-create-form select {
+  color: var(--ink);
+  font-weight: 500;
+}
+.checkpoint-date-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+.recent-checkpoints {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+  font-size: 13px;
 }
 .dashboard-metrics { margin-top: 18px; }
 .team-grid {
@@ -494,9 +548,11 @@ tbody tr:hover { background: #fffbf4; }
   .topbar { display: grid; padding: 14px 16px; }
   .brand { min-width: 0; }
   .page-heading, .inline-form { display: grid; align-items: stretch; }
+  .repo-heading-actions { justify-items: stretch; }
   .action-row { display: grid; align-items: stretch; }
   .member-form, .repo-form { grid-template-columns: 1fr; }
   .checkup-form { grid-template-columns: 1fr; }
+  .checkpoint-date-grid { grid-template-columns: 1fr; }
   .health-heading, .health-summary { display: grid; }
   .repo-row { grid-template-columns: 1fr; }
   .sync-form { display: grid; align-items: stretch; }

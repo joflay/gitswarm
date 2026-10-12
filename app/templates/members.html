@@ -3,23 +3,24 @@
 <section class="page-heading">
   <div>
     <h1>Members</h1>
-    <p class="muted">Members are discovered by scanning repository collaborators.</p>
+    <p class="muted">Members are discovered from GitHub-linked commit authors.</p>
   </div>
-  <a class="button" href="/repositories">Scan repository</a>
+  <a class="button" href="/repositories">View repositories</a>
 </section>
 
 <section>
   <table>
-    <thead><tr><th>GitHub</th><th>Team</th><th>Status</th></tr></thead>
+    <thead><tr><th>GitHub</th><th>Team</th><th>Status</th><th>Score</th></tr></thead>
     <tbody>
       {% for user in users %}
       <tr>
         <td>{{ user.github_username }}</td>
         <td>{{ user.team.name if user.team else "Unassigned" }}</td>
         <td>{{ "active" if user.is_active else "inactive" }}</td>
+        <td>{{ user_scores.get(user.id, 0) }}</td>
       </tr>
       {% else %}
-      <tr><td colspan="3" class="muted">No members yet. Scan a repository to import collaborators.</td></tr>
+      <tr><td colspan="4" class="muted">No members yet. Refresh a repository's commit history to populate this list.</td></tr>
       {% endfor %}
     </tbody>
   </table>

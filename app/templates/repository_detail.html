@@ -15,10 +15,7 @@
   </div>
   <div class="action-row">
     <form method="post" action="/repositories/{{ repo.id }}/refresh-commit-history">
-      <button type="submit" class="secondary">Refresh commit history</button>
-    </form>
-    <form method="post" action="/repositories/{{ repo.id }}/sync-collaborators">
-      <button type="submit">Scan members</button>
+      <button type="submit" class="secondary">Refresh commits and team</button>
     </form>
     <form method="post" action="/repositories/{{ repo.id }}/reset-data">
       <button type="submit" class="secondary">Reset and refresh</button>

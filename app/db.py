@@ -33,8 +33,18 @@ def init_db() -> None:
     import app.models  # noqa: F401
 
     Base.metadata.create_all(bind=engine)
+    _migrate_team_memberships()
     _migrate_sqlite_users_table()
     _migrate_sqlite_user_aliases()
+
+
+def _migrate_team_memberships() -> None:
+    if engine.dialect.name == "sqlite":
+        statement = "INSERT OR IGNORE INTO team_memberships (team_id, user_id) SELECT team_id, id FROM users WHERE team_id IS NOT NULL"
+    else:
+        statement = "INSERT INTO team_memberships (team_id, user_id) SELECT team_id, id FROM users WHERE team_id IS NOT NULL ON CONFLICT DO NOTHING"
+    with engine.begin() as connection:
+        connection.execute(text(statement))
 
 
 def _migrate_sqlite_users_table() -> None:

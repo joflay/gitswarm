@@ -17,6 +17,7 @@ def parse_github_datetime(value: str | None) -> datetime | None:
 class GitHubCommit:
     sha: str
     author_login: str
+    github_login: str
     message: str
     committed_at: datetime
     changed_files: int
@@ -84,6 +85,13 @@ class GitHubClient:
             next_params = None
         return items
 
+    def list_repositories(self, owner: str) -> list[str]:
+        rows = self._paginate(f"/orgs/{owner}/repos", {"type": "all"})
+        return sorted(
+            {row["full_name"] for row in rows if row.get("full_name")},
+            key=str.casefold,
+        )
+
     def list_commits(self, owner: str, repo: str, since: datetime | None = None, until: datetime | None = None) -> list[GitHubCommit]:
         params = {}
         if since:
@@ -102,6 +110,7 @@ class GitHubClient:
                 GitHubCommit(
                     sha=detail["sha"],
                     author_login=author.get("login") or commit_data.get("author", {}).get("name", ""),
+                    github_login=author.get("login", ""),
                     message=commit_data.get("message", ""),
                     committed_at=parse_github_datetime(commit_data.get("author", {}).get("date")) or since or datetime.utcnow(),
                     changed_files=len(files),
@@ -112,10 +121,6 @@ class GitHubClient:
                 )
             )
         return commits
-
-    def list_collaborators(self, owner: str, repo: str) -> list[str]:
-        rows = self._paginate(f"/repos/{owner}/{repo}/collaborators", {"affiliation": "all"})
-        return sorted({row.get("login", "") for row in rows if row.get("login")})
 
     def list_pull_requests(self, owner: str, repo: str, since: datetime, until: datetime) -> list[GitHubPullRequest]:
         rows = self._paginate(f"/repos/{owner}/{repo}/pulls", {"state": "all", "sort": "updated", "direction": "desc"})
