@@ -1,0 +1,11 @@
+filename,meeting_type,meeting_date,date_source
+First Meeting.csv,general,2026-09-14,check-in timestamps
+General Meeting (SAW).csv,general,2026-09-22,check-in timestamps
+Financial Development Program.csv,fdp,2026-09-23,date recovered from attendance_cleaning_script/backups/20261012-170749/Financial Development Program.csv
+Quant Meeting(1).csv,quant,2026-09-24,check-in timestamps
+General Meeting (SAW) 2.csv,general,2026-09-29,check-in timestamps
+Financial Development Program 2.csv,fdp,2026-09-30,check-in timestamps
+Quant Meeting(3).csv,quant,2026-10-01,check-in timestamps
+General Meeting (SAW) 3.csv,general,2026-10-06,check-in timestamps
+Financial Development Program 3.csv,fdp,2026-10-07,check-in timestamps
+Quant Meeting(4).csv,quant,2026-10-08,check-in timestamps

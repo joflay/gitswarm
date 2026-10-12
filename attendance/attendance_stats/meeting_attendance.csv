@@ -1,0 +1,131 @@
+name,email,class_year,meeting_file,meeting_type,meeting_date,week_start,attended
+Richard Ngo,richard.ngo-2006@tamu.edu,Junior,First Meeting.csv,general,2026-09-14,2026-09-14,False
+Richard Ngo,richard.ngo-2006@tamu.edu,Junior,General Meeting (SAW).csv,general,2026-09-22,2026-09-21,False
+Richard Ngo,richard.ngo-2006@tamu.edu,Junior,Financial Development Program.csv,fdp,2026-09-23,2026-09-21,False
+Richard Ngo,richard.ngo-2006@tamu.edu,Junior,Quant Meeting(1).csv,quant,2026-09-24,2026-09-21,True
+Richard Ngo,richard.ngo-2006@tamu.edu,Junior,General Meeting (SAW) 2.csv,general,2026-09-29,2026-09-28,False
+Richard Ngo,richard.ngo-2006@tamu.edu,Junior,Financial Development Program 2.csv,fdp,2026-09-30,2026-09-28,False
+Richard Ngo,richard.ngo-2006@tamu.edu,Junior,Quant Meeting(3).csv,quant,2026-10-01,2026-09-28,True
+Richard Ngo,richard.ngo-2006@tamu.edu,Junior,General Meeting (SAW) 3.csv,general,2026-10-06,2026-10-05,False
+Richard Ngo,richard.ngo-2006@tamu.edu,Junior,Financial Development Program 3.csv,fdp,2026-10-07,2026-10-05,False
+Richard Ngo,richard.ngo-2006@tamu.edu,Junior,Quant Meeting(4).csv,quant,2026-10-08,2026-10-05,True
+Abhinav Vasudevan,abhinav.vasudevan@tamu.edu,Senior,First Meeting.csv,general,2026-09-14,2026-09-14,False
+Abhinav Vasudevan,abhinav.vasudevan@tamu.edu,Senior,General Meeting (SAW).csv,general,2026-09-22,2026-09-21,True
+Abhinav Vasudevan,abhinav.vasudevan@tamu.edu,Senior,Financial Development Program.csv,fdp,2026-09-23,2026-09-21,False
+Abhinav Vasudevan,abhinav.vasudevan@tamu.edu,Senior,Quant Meeting(1).csv,quant,2026-09-24,2026-09-21,True
+Abhinav Vasudevan,abhinav.vasudevan@tamu.edu,Senior,General Meeting (SAW) 2.csv,general,2026-09-29,2026-09-28,True
+Abhinav Vasudevan,abhinav.vasudevan@tamu.edu,Senior,Financial Development Program 2.csv,fdp,2026-09-30,2026-09-28,False
+Abhinav Vasudevan,abhinav.vasudevan@tamu.edu,Senior,Quant Meeting(3).csv,quant,2026-10-01,2026-09-28,False
+Abhinav Vasudevan,abhinav.vasudevan@tamu.edu,Senior,General Meeting (SAW) 3.csv,general,2026-10-06,2026-10-05,True
+Abhinav Vasudevan,abhinav.vasudevan@tamu.edu,Senior,Financial Development Program 3.csv,fdp,2026-10-07,2026-10-05,False
+Abhinav Vasudevan,abhinav.vasudevan@tamu.edu,Senior,Quant Meeting(4).csv,quant,2026-10-08,2026-10-05,False
+Ben Hoang,benhoang63@tamu.edu,Junior,First Meeting.csv,general,2026-09-14,2026-09-14,False
+Ben Hoang,benhoang63@tamu.edu,Junior,General Meeting (SAW).csv,general,2026-09-22,2026-09-21,False
+Ben Hoang,benhoang63@tamu.edu,Junior,Financial Development Program.csv,fdp,2026-09-23,2026-09-21,False
+Ben Hoang,benhoang63@tamu.edu,Junior,Quant Meeting(1).csv,quant,2026-09-24,2026-09-21,True
+Ben Hoang,benhoang63@tamu.edu,Junior,General Meeting (SAW) 2.csv,general,2026-09-29,2026-09-28,True
+Ben Hoang,benhoang63@tamu.edu,Junior,Financial Development Program 2.csv,fdp,2026-09-30,2026-09-28,False
+Ben Hoang,benhoang63@tamu.edu,Junior,Quant Meeting(3).csv,quant,2026-10-01,2026-09-28,False
+Ben Hoang,benhoang63@tamu.edu,Junior,General Meeting (SAW) 3.csv,general,2026-10-06,2026-10-05,False
+Ben Hoang,benhoang63@tamu.edu,Junior,Financial Development Program 3.csv,fdp,2026-10-07,2026-10-05,False
+Ben Hoang,benhoang63@tamu.edu,Junior,Quant Meeting(4).csv,quant,2026-10-08,2026-10-05,True
+Jason Lau,jasonylau@tamu.edu,Senior,First Meeting.csv,general,2026-09-14,2026-09-14,False
+Jason Lau,jasonylau@tamu.edu,Senior,General Meeting (SAW).csv,general,2026-09-22,2026-09-21,False
+Jason Lau,jasonylau@tamu.edu,Senior,Financial Development Program.csv,fdp,2026-09-23,2026-09-21,False
+Jason Lau,jasonylau@tamu.edu,Senior,Quant Meeting(1).csv,quant,2026-09-24,2026-09-21,False
+Jason Lau,jasonylau@tamu.edu,Senior,General Meeting (SAW) 2.csv,general,2026-09-29,2026-09-28,False
+Jason Lau,jasonylau@tamu.edu,Senior,Financial Development Program 2.csv,fdp,2026-09-30,2026-09-28,False
+Jason Lau,jasonylau@tamu.edu,Senior,Quant Meeting(3).csv,quant,2026-10-01,2026-09-28,False
+Jason Lau,jasonylau@tamu.edu,Senior,General Meeting (SAW) 3.csv,general,2026-10-06,2026-10-05,False
+Jason Lau,jasonylau@tamu.edu,Senior,Financial Development Program 3.csv,fdp,2026-10-07,2026-10-05,False
+Jason Lau,jasonylau@tamu.edu,Senior,Quant Meeting(4).csv,quant,2026-10-08,2026-10-05,False
+Eddie Fu,instinct2145@gmail.com,Sophomore,First Meeting.csv,general,2026-09-14,2026-09-14,True
+Eddie Fu,instinct2145@gmail.com,Sophomore,General Meeting (SAW).csv,general,2026-09-22,2026-09-21,True
+Eddie Fu,instinct2145@gmail.com,Sophomore,Financial Development Program.csv,fdp,2026-09-23,2026-09-21,False
+Eddie Fu,instinct2145@gmail.com,Sophomore,Quant Meeting(1).csv,quant,2026-09-24,2026-09-21,True
+Eddie Fu,instinct2145@gmail.com,Sophomore,General Meeting (SAW) 2.csv,general,2026-09-29,2026-09-28,False
+Eddie Fu,instinct2145@gmail.com,Sophomore,Financial Development Program 2.csv,fdp,2026-09-30,2026-09-28,False
+Eddie Fu,instinct2145@gmail.com,Sophomore,Quant Meeting(3).csv,quant,2026-10-01,2026-09-28,True
+Eddie Fu,instinct2145@gmail.com,Sophomore,General Meeting (SAW) 3.csv,general,2026-10-06,2026-10-05,False
+Eddie Fu,instinct2145@gmail.com,Sophomore,Financial Development Program 3.csv,fdp,2026-10-07,2026-10-05,False
+Eddie Fu,instinct2145@gmail.com,Sophomore,Quant Meeting(4).csv,quant,2026-10-08,2026-10-05,True
+Monte Long,monte1x@tamu.edu,Sophomore,First Meeting.csv,general,2026-09-14,2026-09-14,False
+Monte Long,monte1x@tamu.edu,Sophomore,General Meeting (SAW).csv,general,2026-09-22,2026-09-21,True
+Monte Long,monte1x@tamu.edu,Sophomore,Financial Development Program.csv,fdp,2026-09-23,2026-09-21,False
+Monte Long,monte1x@tamu.edu,Sophomore,Quant Meeting(1).csv,quant,2026-09-24,2026-09-21,True
+Monte Long,monte1x@tamu.edu,Sophomore,General Meeting (SAW) 2.csv,general,2026-09-29,2026-09-28,True
+Monte Long,monte1x@tamu.edu,Sophomore,Financial Development Program 2.csv,fdp,2026-09-30,2026-09-28,False
+Monte Long,monte1x@tamu.edu,Sophomore,Quant Meeting(3).csv,quant,2026-10-01,2026-09-28,True
+Monte Long,monte1x@tamu.edu,Sophomore,General Meeting (SAW) 3.csv,general,2026-10-06,2026-10-05,False
+Monte Long,monte1x@tamu.edu,Sophomore,Financial Development Program 3.csv,fdp,2026-10-07,2026-10-05,True
+Monte Long,monte1x@tamu.edu,Sophomore,Quant Meeting(4).csv,quant,2026-10-08,2026-10-05,False
+Bryce Millington,b1b2millington@gmail.com,Sophomore,First Meeting.csv,general,2026-09-14,2026-09-14,True
+Bryce Millington,b1b2millington@gmail.com,Sophomore,General Meeting (SAW).csv,general,2026-09-22,2026-09-21,False
+Bryce Millington,b1b2millington@gmail.com,Sophomore,Financial Development Program.csv,fdp,2026-09-23,2026-09-21,False
+Bryce Millington,b1b2millington@gmail.com,Sophomore,Quant Meeting(1).csv,quant,2026-09-24,2026-09-21,True
+Bryce Millington,b1b2millington@gmail.com,Sophomore,General Meeting (SAW) 2.csv,general,2026-09-29,2026-09-28,True
+Bryce Millington,b1b2millington@gmail.com,Sophomore,Financial Development Program 2.csv,fdp,2026-09-30,2026-09-28,False
+Bryce Millington,b1b2millington@gmail.com,Sophomore,Quant Meeting(3).csv,quant,2026-10-01,2026-09-28,True
+Bryce Millington,b1b2millington@gmail.com,Sophomore,General Meeting (SAW) 3.csv,general,2026-10-06,2026-10-05,True
+Bryce Millington,b1b2millington@gmail.com,Sophomore,Financial Development Program 3.csv,fdp,2026-10-07,2026-10-05,False
+Bryce Millington,b1b2millington@gmail.com,Sophomore,Quant Meeting(4).csv,quant,2026-10-08,2026-10-05,False
+Juan Pablo De La Garza Gonzalez,tiwanpraim_0@tamu.edu,Freshman,First Meeting.csv,general,2026-09-14,2026-09-14,False
+Juan Pablo De La Garza Gonzalez,tiwanpraim_0@tamu.edu,Freshman,General Meeting (SAW).csv,general,2026-09-22,2026-09-21,True
+Juan Pablo De La Garza Gonzalez,tiwanpraim_0@tamu.edu,Freshman,Financial Development Program.csv,fdp,2026-09-23,2026-09-21,False
+Juan Pablo De La Garza Gonzalez,tiwanpraim_0@tamu.edu,Freshman,Quant Meeting(1).csv,quant,2026-09-24,2026-09-21,True
+Juan Pablo De La Garza Gonzalez,tiwanpraim_0@tamu.edu,Freshman,General Meeting (SAW) 2.csv,general,2026-09-29,2026-09-28,False
+Juan Pablo De La Garza Gonzalez,tiwanpraim_0@tamu.edu,Freshman,Financial Development Program 2.csv,fdp,2026-09-30,2026-09-28,True
+Juan Pablo De La Garza Gonzalez,tiwanpraim_0@tamu.edu,Freshman,Quant Meeting(3).csv,quant,2026-10-01,2026-09-28,False
+Juan Pablo De La Garza Gonzalez,tiwanpraim_0@tamu.edu,Freshman,General Meeting (SAW) 3.csv,general,2026-10-06,2026-10-05,True
+Juan Pablo De La Garza Gonzalez,tiwanpraim_0@tamu.edu,Freshman,Financial Development Program 3.csv,fdp,2026-10-07,2026-10-05,False
+Juan Pablo De La Garza Gonzalez,tiwanpraim_0@tamu.edu,Freshman,Quant Meeting(4).csv,quant,2026-10-08,2026-10-05,True
+Aarya Bookseller,aaryabookseller@tamu.edu,Senior,First Meeting.csv,general,2026-09-14,2026-09-14,False
+Aarya Bookseller,aaryabookseller@tamu.edu,Senior,General Meeting (SAW).csv,general,2026-09-22,2026-09-21,True
+Aarya Bookseller,aaryabookseller@tamu.edu,Senior,Financial Development Program.csv,fdp,2026-09-23,2026-09-21,False
+Aarya Bookseller,aaryabookseller@tamu.edu,Senior,Quant Meeting(1).csv,quant,2026-09-24,2026-09-21,True
+Aarya Bookseller,aaryabookseller@tamu.edu,Senior,General Meeting (SAW) 2.csv,general,2026-09-29,2026-09-28,False
+Aarya Bookseller,aaryabookseller@tamu.edu,Senior,Financial Development Program 2.csv,fdp,2026-09-30,2026-09-28,False
+Aarya Bookseller,aaryabookseller@tamu.edu,Senior,Quant Meeting(3).csv,quant,2026-10-01,2026-09-28,True
+Aarya Bookseller,aaryabookseller@tamu.edu,Senior,General Meeting (SAW) 3.csv,general,2026-10-06,2026-10-05,False
+Aarya Bookseller,aaryabookseller@tamu.edu,Senior,Financial Development Program 3.csv,fdp,2026-10-07,2026-10-05,False
+Aarya Bookseller,aaryabookseller@tamu.edu,Senior,Quant Meeting(4).csv,quant,2026-10-08,2026-10-05,True
+Sydney Martinez,sydneyangelinam@gmail.com,Sophomore,First Meeting.csv,general,2026-09-14,2026-09-14,False
+Sydney Martinez,sydneyangelinam@gmail.com,Sophomore,General Meeting (SAW).csv,general,2026-09-22,2026-09-21,True
+Sydney Martinez,sydneyangelinam@gmail.com,Sophomore,Financial Development Program.csv,fdp,2026-09-23,2026-09-21,False
+Sydney Martinez,sydneyangelinam@gmail.com,Sophomore,Quant Meeting(1).csv,quant,2026-09-24,2026-09-21,True
+Sydney Martinez,sydneyangelinam@gmail.com,Sophomore,General Meeting (SAW) 2.csv,general,2026-09-29,2026-09-28,True
+Sydney Martinez,sydneyangelinam@gmail.com,Sophomore,Financial Development Program 2.csv,fdp,2026-09-30,2026-09-28,False
+Sydney Martinez,sydneyangelinam@gmail.com,Sophomore,Quant Meeting(3).csv,quant,2026-10-01,2026-09-28,True
+Sydney Martinez,sydneyangelinam@gmail.com,Sophomore,General Meeting (SAW) 3.csv,general,2026-10-06,2026-10-05,False
+Sydney Martinez,sydneyangelinam@gmail.com,Sophomore,Financial Development Program 3.csv,fdp,2026-10-07,2026-10-05,False
+Sydney Martinez,sydneyangelinam@gmail.com,Sophomore,Quant Meeting(4).csv,quant,2026-10-08,2026-10-05,False
+Abhi Avula,abhiavula9@gmail.com,Junior,First Meeting.csv,general,2026-09-14,2026-09-14,False
+Abhi Avula,abhiavula9@gmail.com,Junior,General Meeting (SAW).csv,general,2026-09-22,2026-09-21,False
+Abhi Avula,abhiavula9@gmail.com,Junior,Financial Development Program.csv,fdp,2026-09-23,2026-09-21,False
+Abhi Avula,abhiavula9@gmail.com,Junior,Quant Meeting(1).csv,quant,2026-09-24,2026-09-21,True
+Abhi Avula,abhiavula9@gmail.com,Junior,General Meeting (SAW) 2.csv,general,2026-09-29,2026-09-28,True
+Abhi Avula,abhiavula9@gmail.com,Junior,Financial Development Program 2.csv,fdp,2026-09-30,2026-09-28,False
+Abhi Avula,abhiavula9@gmail.com,Junior,Quant Meeting(3).csv,quant,2026-10-01,2026-09-28,True
+Abhi Avula,abhiavula9@gmail.com,Junior,General Meeting (SAW) 3.csv,general,2026-10-06,2026-10-05,False
+Abhi Avula,abhiavula9@gmail.com,Junior,Financial Development Program 3.csv,fdp,2026-10-07,2026-10-05,False
+Abhi Avula,abhiavula9@gmail.com,Junior,Quant Meeting(4).csv,quant,2026-10-08,2026-10-05,True
+Aneesh Jape,aneeshjape@tamu.edu,Freshman,First Meeting.csv,general,2026-09-14,2026-09-14,False
+Aneesh Jape,aneeshjape@tamu.edu,Freshman,General Meeting (SAW).csv,general,2026-09-22,2026-09-21,True
+Aneesh Jape,aneeshjape@tamu.edu,Freshman,Financial Development Program.csv,fdp,2026-09-23,2026-09-21,False
+Aneesh Jape,aneeshjape@tamu.edu,Freshman,Quant Meeting(1).csv,quant,2026-09-24,2026-09-21,False
+Aneesh Jape,aneeshjape@tamu.edu,Freshman,General Meeting (SAW) 2.csv,general,2026-09-29,2026-09-28,False
+Aneesh Jape,aneeshjape@tamu.edu,Freshman,Financial Development Program 2.csv,fdp,2026-09-30,2026-09-28,False
+Aneesh Jape,aneeshjape@tamu.edu,Freshman,Quant Meeting(3).csv,quant,2026-10-01,2026-09-28,True
+Aneesh Jape,aneeshjape@tamu.edu,Freshman,General Meeting (SAW) 3.csv,general,2026-10-06,2026-10-05,True
+Aneesh Jape,aneeshjape@tamu.edu,Freshman,Financial Development Program 3.csv,fdp,2026-10-07,2026-10-05,False
+Aneesh Jape,aneeshjape@tamu.edu,Freshman,Quant Meeting(4).csv,quant,2026-10-08,2026-10-05,False
+Manas Paramathmuni,manas.paramathmuni@gmail.com,Sophomore,First Meeting.csv,general,2026-09-14,2026-09-14,False
+Manas Paramathmuni,manas.paramathmuni@gmail.com,Sophomore,General Meeting (SAW).csv,general,2026-09-22,2026-09-21,True
+Manas Paramathmuni,manas.paramathmuni@gmail.com,Sophomore,Financial Development Program.csv,fdp,2026-09-23,2026-09-21,False
+Manas Paramathmuni,manas.paramathmuni@gmail.com,Sophomore,Quant Meeting(1).csv,quant,2026-09-24,2026-09-21,True
+Manas Paramathmuni,manas.paramathmuni@gmail.com,Sophomore,General Meeting (SAW) 2.csv,general,2026-09-29,2026-09-28,False
+Manas Paramathmuni,manas.paramathmuni@gmail.com,Sophomore,Financial Development Program 2.csv,fdp,2026-09-30,2026-09-28,True
+Manas Paramathmuni,manas.paramathmuni@gmail.com,Sophomore,Quant Meeting(3).csv,quant,2026-10-01,2026-09-28,True
+Manas Paramathmuni,manas.paramathmuni@gmail.com,Sophomore,General Meeting (SAW) 3.csv,general,2026-10-06,2026-10-05,True
+Manas Paramathmuni,manas.paramathmuni@gmail.com,Sophomore,Financial Development Program 3.csv,fdp,2026-10-07,2026-10-05,False
+Manas Paramathmuni,manas.paramathmuni@gmail.com,Sophomore,Quant Meeting(4).csv,quant,2026-10-08,2026-10-05,False

@@ -7,6 +7,7 @@ from app.db import SessionLocal, init_db
 from app.models import Checkpoint
 from app.services.ingest import ingest_activity
 from app.services.reports import export_report
+from discord_assistant.cli import add_discord_command, run_discord_command
 
 
 def parse_dt(value: str) -> datetime:
@@ -28,7 +29,12 @@ def main() -> None:
     report.add_argument("--checkpoint-id", required=True, type=int)
     report.add_argument("--format", choices=["markdown", "pdf"], default="markdown")
 
+    add_discord_command(sub)
+
     args = parser.parse_args()
+    if args.command == "discord":
+        run_discord_command(args)
+        return
     if args.command == "init-db":
         init_db()
         print("Database initialized")
